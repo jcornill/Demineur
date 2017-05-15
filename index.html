@@ -46,7 +46,7 @@
 			game.load.image('bomb', 'Assets/Bomb.png');
 
 			game.stage.backgroundColor = '#808080';
-			for (var i = 0; i < length; i++) {
+			for (var i = 0; i < endX; i++) {
 				var tmp = [];
 				spriteList.push(tmp);
 			}
@@ -93,9 +93,9 @@ function moveCamera()
 		if (Math.floor(game.camera.x / tileWidth) > indexX)
 		{
 			for (var i = startY + indexY; i < endY + indexY; i++) {
-				if (spriteList[startX + indexX][i] == undefined)
+				if (spriteList[(startX + indexX) % endX][i % endY] == undefined)
 					continue;
-				spriteList[startX + indexX][i].destroy();
+				spriteList[(startX + indexX) % endX][i % endY].destroy();
 				for (var tt of txts) {
 					if (tt.x === (startX + indexX) && tt.y === i)
 					{
@@ -116,9 +116,9 @@ function moveCamera()
 		if (Math.floor(game.camera.x / tileWidth) < indexX)
 		{
 			for (var i = startY + indexY; i < endY + indexY; i++) {
-				if (spriteList[endX + indexX - 1][i] == undefined)
+				if (spriteList[(endX + indexX - 1) % endX][i % endY] == undefined)
 					continue;
-				spriteList[endX + indexX - 1][i].destroy();
+				spriteList[(endX + indexX - 1) % endX][i % endY].destroy();
 				for (var tt of txts) {
 					if (tt.x === (endX + indexX - 1) && tt.y === i)
 					{
@@ -139,9 +139,9 @@ function moveCamera()
 		if (Math.floor(game.camera.y / tileHeight) < indexY)
 		{
 			for (var i = startX + indexX; i < endX + indexX; i++) {
-				if (spriteList[i][endY + indexY - 1] == undefined)
+				if (spriteList[i % endX][(endY + indexY - 1) % endY] == undefined)
 					continue;
-				spriteList[i][endY + indexY - 1].destroy();
+				spriteList[i % endX][(endY + indexY - 1) % endY].destroy();
 				for (var tt of txts) {
 					if (tt.x === i && tt.y === (endY + indexY - 1))
 					{
@@ -162,9 +162,9 @@ function moveCamera()
 		if (Math.floor(game.camera.y / tileHeight) > indexY)
 		{
 			for (var i = startX + indexX; i < endX + indexX; i++) {
-				if (spriteList[i][startY + indexY] == undefined)
+				if (spriteList[i % endX][(startY + indexY) % endY] == undefined)
 					continue;
-				spriteList[i][startY + indexY].destroy();
+				spriteList[i % endX][(startY + indexY) % endY].destroy();
 				for (var tt of txts) {
 					if (tt.x === i && tt.y === (startY + indexY))
 					{
@@ -185,20 +185,20 @@ function process(x, y, visibility)
 {
 	if (x < startX + indexX || x > endX + indexX - 1 || y < startY + indexY || y > endY + indexY - 1)
 		return;
-	if (spriteList[x][y] != undefined)
-		spriteList[x][y].destroy();
+	if (spriteList[x % endX][y % endY] != undefined)
+		spriteList[x % endX][y % endY].destroy();
 	if (visibility === -2)
 	{
 		var sprite = game.add.sprite(x * tileWidth, y * tileHeight, 'flag');
-		spriteList[x][y] = sprite;
+		spriteList[x % endX][y % endY] = sprite;
 	}
 	else if (visibility === -1)
 	{
-		spriteList[x][y] = game.add.sprite(x * tileWidth, y * tileHeight, 'cube');
+		spriteList[x % endX][y % endY] = game.add.sprite(x * tileWidth, y * tileHeight, 'cube');
 	}
 	else
 	{
-		spriteList[x][y] = game.add.sprite(x * tileWidth, y * tileHeight, 'empty');
+		spriteList[x % endX][y % endY] = game.add.sprite(x * tileWidth, y * tileHeight, 'empty');
 		var tmp = game.add.text(x * tileWidth + 7, y * tileHeight + 5, visibility, { font: "25px Arial", fill: "#ffffff" });
 		if (visibility === 1)
 			tmp.tint = 0x0000ff;

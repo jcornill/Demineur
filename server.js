@@ -8,13 +8,7 @@ var rl = readline.createInterface({
 });
 
 try {
-	var server = http.createServer(function(req, res) {
-	    fs.readFile('./index.html', 'utf-8', function(error, content) {
-	        res.writeHead(200, {"Content-Type": "text/html"});
-	        res.write(content);
-	    });
-		res.end();
-	});
+	var server = http.createServer(function(req, res) {});
 } catch (e) {
 	console.log(e);
 }
