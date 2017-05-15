@@ -182,8 +182,15 @@ io.sockets.on('connection', function (socket) {
 	{
 		if (pos.x !== Math.floor(pos.x) || pos.y !== Math.floor(pos.y))
 			return undefined;
+		if (pos.x < 0 || pos.Y < 0)
+			return undefined;
 		if (pos.x < visible.length && pos.y < visible[0].length)
 			socket.emit('returnInfo', {x:pos.x, y:pos.y, v:visible[pos.x][pos.y] });
+	});
+
+	socket.on('askTeleport', function(pos)
+	{
+		socket.emit('moveTo', pos);
 	});
 });
 

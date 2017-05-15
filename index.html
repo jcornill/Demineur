@@ -6,8 +6,10 @@
 	<style> body { margin: 0; background: #333; } </style>
 </head>
 <body>
-<script src="http://vps.kirthos.dyjix.eu/Site/JS/Test/phaser.min.js"></script>
-<script src="http://vps.kirthos.dyjix.eu/Site/JS/Test/node_modules/socket.io-client/dist/socket.io.js"></script>
+<!-- <button onclick="teleport()">Teleport</button> -->
+<script src="http://vps.kirthos.dyjix.eu/Demineur/phaser.min.js"></script>
+<script src="http://vps.kirthos.dyjix.eu/Demineur/CanvasInput.min.js"></script>
+<script src="http://vps.kirthos.dyjix.eu/Demineur/node_modules/socket.io-client/dist/socket.io.js"></script>
 <script>
 	var socket = io.connect("http://vps.kirthos.dyjix.eu:8080");
 	var cursors;
@@ -38,14 +40,16 @@
 	var loadFunct = function(obj)
 	{
 		length = obj.pLength;
-		game = new Phaser.Game(width, height, Phaser.CANVAS, 'game', { preload: preload, create: create, update: update, render: render });
+		game = new Phaser.Game(width, height, Phaser.CANVAS, "", { preload: preload, create: create, update: update, render: render});
 		function preload() {
 		    game.load.image('cube', 'Assets/Cube.png');
 			game.load.image('empty', 'Assets/Empty.png');
 			game.load.image('flag', 'Assets/Flag.png');
 			game.load.image('bomb', 'Assets/Bomb.png');
-
 			game.stage.backgroundColor = '#808080';
+			game.canvas.id = "Game";
+			game.canvas.style.left = "0px";
+	        game.canvas.style.top = "0px";
 			for (var i = 0; i < endX; i++) {
 				var tmp = [];
 				spriteList.push(tmp);
@@ -58,7 +62,55 @@
 		game.canvas.oncontextmenu = function (e) { e.preventDefault(); }
 		game.world.setBounds(0, 0, (length - 1) * tileWidth, (length - 1) * tileHeight);
 		cursors = game.input.keyboard.createCursorKeys();
+
+		var ui = document.createElement('div');
+		ui.id = "UI";
+		ui.oncontextmenu = function(e) {e.preventDefault();}
+		ui.style.pointerEvents = "none";
+		ui.style.width  = game.canvas.width + "px";
+		ui.style.height = game.canvas.height + "px";
+		ui.style.display = "block";
+		ui.style.left = "0px";
+        ui.style.top = "0px";
+		ui.style.position = "absolute";
+		document.body.appendChild(ui);
+		var iX = document.createElement('input');
+		iX.type = "text";
+		iX.style.pointerEvents = "auto";
+		iX.style.width = "75px";
+		iX.style.height = "30px";
+		iX.style.right = "145px";
+        iX.style.bottom = "10px";
+		iX.style.position = "absolute";
+		document.getElementById('UI').appendChild(iX);
+		var iY = document.createElement('input');
+		iY.type = "text";
+		iY.style.pointerEvents = "auto";
+		iY.style.width = "75px";
+		iY.style.height = "30px";
+		iY.style.right = "60px";
+        iY.style.bottom = "10px";
+		iY.style.position = "absolute";
+		document.getElementById('UI').appendChild(iY);
+		var button = document.createElement('input');
+		button.type = "button";
+		button.value = "Go";
+		button.style.pointerEvents = "auto";
+		button.style.width = "50px";
+		button.style.height = "50px";
+		button.style.right = "5px";
+        button.style.bottom = "5px";
+		button.style.position = "absolute";
+		document.getElementById('UI').appendChild(button);
+		button.onclick = function()
+		{
+			var pX = Math.floor(iX.value / tileWidth);
+			var pY = Math.floor(iY.value / tileHeight);
+			console.log(pX + ":" + pY);
+			socket.emit('askTeleport', {x: pX, y:pY});
+		};
 		socket.emit('finishLoad');
+
 	}
 
 	function update() {
@@ -273,6 +325,11 @@ socket.on('askDisconnect', function()
 
 socket.on('moveTo', function(pos)
 {
+	if (pos.x - Math.floor((width / tileWidth + 2) / 2) < 0 || pos.y - Math.floor((height / tileHeight + 2) / 2) < 0 || pos.x == undefined || pos.y == undefined || (pos.x - Math.floor((width / tileWidth + 2) / 2) + endX) > length || (pos.y - Math.floor((height / tileHeight + 2) / 2) + endY) > length * tileHeight)
+	{
+		alert("Error");
+		return;
+	}
 	game.camera.x = pos.x * tileWidth - width / 2;
 	game.camera.y = pos.y * tileHeight - height / 2;
 
