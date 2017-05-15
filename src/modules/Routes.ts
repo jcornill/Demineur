@@ -3,7 +3,7 @@
  * Created by Frederic Nieto on 30/06/2016.
  */
 import ModuleGroup from "../utils/ModuleGroup";
-import Module from "../utils/Module";
+import {Module} from "../utils/Module";
 import ExpressModule from "./Express";
 import {Request} from "express";
 import {Response} from "express";

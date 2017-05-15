@@ -5,7 +5,7 @@
 import * as express from "express";
 import {Router} from "express";
 import ModuleGroup from "../utils/ModuleGroup";
-import Module from "../utils/Module";
+import {Module} from "../utils/Module";
 import {Server} from "http";
 
 class ExpressModule extends Module {
@@ -21,7 +21,7 @@ class ExpressModule extends Module {
         this.server = this.app.listen(port, function () {
             let host: string = self.server.address().address;
             let port: number = self.server.address().port;
-            console.log('Server listening at http://%s:%s', host, port);
+            console.log('Server listening at http://%s:%s', host !== "::" ? host : 'localhost', port);
         });
     }
 
