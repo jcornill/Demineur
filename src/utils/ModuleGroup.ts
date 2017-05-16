@@ -14,13 +14,14 @@ class ModuleGroup {
      * @returns {boolean} if the registration was sucessfull
      */
     registerModule(name: string, module: Object): boolean {
+        let self = this;
         if (this.modules[name] != null) {
             return false;
         }
         this.modules[name] = module;
         let callbacks = this.moduleLoadCallbacks[name];
         if (callbacks != null) {
-            callbacks.forEach(function (f: Function) {f(this.modules[name]); });
+            callbacks.forEach(function (f: Function) {f(self.modules[name]); });
         }
         return true;
     }

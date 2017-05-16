@@ -17,7 +17,7 @@ class ExpressModule extends Module {
         super(moduleGroup);
         let self = this;
         this.app = express();
-        let port = /*process.env.PORT ||*/ 8080;
+        let port = process.env.PORT || 8080;
         this.server = this.app.listen(port, function () {
             let host: string = self.server.address().address;
             let port: number = self.server.address().port;
