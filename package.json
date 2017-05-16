@@ -9,7 +9,8 @@
   },
   "scripts": {
     "gulp": "gulp",
-    "start": "node ./bin/www"
+    "start": "node ./bin/www",
+    "postinstall": "typings install"
   },
   "dependencies": {
     "express": "^4.14.0",
