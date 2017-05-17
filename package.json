@@ -8,8 +8,8 @@
     "node": "~5.6"
   },
   "scripts": {
-    "gulp": "gulp",
-    "start": "node ./bin/www",
+    "build": "cpx src/client/**/* dist/client && grunt ts",
+    "start": "node dist/main.js",
     "postinstall": "typings install"
   },
   "dependencies": {
@@ -18,6 +18,7 @@
   },
   "devDependencies": {
     "body-parser": "^1.15.2",
+    "cpx": "^1.5.0",
     "grunt": "^1.0.1",
     "grunt-cli": "^1.2.0",
     "grunt-contrib-watch": "^1.0.0",

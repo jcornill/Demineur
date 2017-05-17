@@ -3,6 +3,7 @@
  * Created by Frederic Nieto on 30/06/2016.
  */
 import * as express from "express";
+import * as path from "path";
 import ModuleGroup from "../utils/ModuleGroup";
 import {Module} from "../utils/Module";
 import ExpressModule from "./Express";
@@ -14,8 +15,7 @@ class Routes extends Module {
         super(moduleGroup);
         moduleGroup.onModuleLoad('Express', function (module: ExpressModule) {
             module.app.get("/", function (req: Request, res: Response) {
-                console.log(__dirname);
-                res.sendFile("C:\\Users\\Frederic\\WebstormProjects\\Demineur\\src\\client\\index.html");
+                res.sendFile(path.join(__dirname, '../client', 'index.html'));
             });
             module.app.use('/Assets', express.static('Assets'))
         });
