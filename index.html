@@ -11,7 +11,7 @@
 <script src="http://vps.kirthos.dyjix.eu/Demineur/CanvasInput.min.js"></script>
 <script src="http://vps.kirthos.dyjix.eu/Demineur/node_modules/socket.io-client/dist/socket.io.js"></script>
 <script>
-	var socket = io.connect("http://vps.kirthos.dyjix.eu:8080");
+	var socket = io.connect("http://" + window.location.host);
 	var cursors;
 	var isLost = false;
 
