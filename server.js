@@ -21,6 +21,7 @@ var loader = [];
 var regionSize = 256;
 var regions = [];
 var length = 1000;
+var players = [];
 
 for (var i = 0; i < 4; i++) {
 	for (var j = 0; j < 4; j++) {
@@ -94,6 +95,13 @@ function processAction(x, y, button, socket)
 		else if (vis === -1)
 			vis = -2;
 		setVisible(x,y,vis);
+		if (getBomb(x, y) && vis === -2){
+			players[socket.username].score += 10;
+		}
+		else{
+			//TODO: Player place flag where is no bomb, What we do
+			socket.emit('printText', "Score: " + players[socket.username].score);
+		}
 		io.emit('processAction', {x:x, y:y, visibility:vis });
 		return;
 	}
@@ -121,6 +129,7 @@ function processAction(x, y, button, socket)
 			}
 		}
 	}
+	players[socket.username].score += 1;
 	io.emit('processAction', {x:x, y:y, visibility:vis });
 }
 
@@ -264,35 +273,44 @@ io.sockets.on('connection', function (socket) {
 		if (socket.username == undefined)
 		{
 			socket.username = value;
+			if (players[socket.username] == undefined)
+				players[socket.username] = {score:0};
 			socket.emit('printText', "You join the game.");
 			socket.broadcast.emit('printText', value + " has join the game.");
 		}
+		socket.emit('load', { pLength: length});
 	});
-	socket.emit('load', { pLength: length});
 
 	var test = function()
 	{
-		while(true)
+		if (players[socket.username].pos == undefined)
 		{
-			var r1 = Math.floor(Math.random() * (length - 200));
-			var r2 = Math.floor(Math.random() * (length - 200));
-			r1 += 100;
-			r2 += 100;
-
-			var vis = getVisible(r1, r2);
-			var bomb = getBomb(r1, r2);
-			if (vis === -1 && bomb === false && getNbBomb(r1, r2) === 0)
+			while(true)
 			{
-				var emp = getEmptySpaceFromPoint(r1, r2);
-					counter = [];
-				if (emp < 10 || emp > 15)
-					continue;
-				processAction(r1, r2, 1, socket);
-				var spawnPoint = {x: r1, y:r2};
-				console.log("Found spawnPoint at " + r1 + ":" + r2);
-				socket.emit('moveTo', spawnPoint);
-				break;
+				var r1 = Math.floor(Math.random() * (length - 200));
+				var r2 = Math.floor(Math.random() * (length - 200));
+				r1 += 100;
+				r2 += 100;
+
+				var vis = getVisible(r1, r2);
+				var bomb = getBomb(r1, r2);
+				if (vis === -1 && bomb === false && getNbBomb(r1, r2) === 0)
+				{
+					var emp = getEmptySpaceFromPoint(r1, r2);
+						counter = [];
+					if (emp < 10 || emp > 15)
+						continue;
+					processAction(r1, r2, 1, socket);
+					var spawnPoint = {x: r1, y:r2};
+					console.log("Found spawnPoint at " + r1 + ":" + r2);
+					players[socket.username].pos = spawnPoint;
+					socket.emit('moveTo', spawnPoint);
+					break;
+				}
 			}
+		}
+		else {
+			socket.emit('moveTo', players[socket.username].pos);
 		}
 	}
 
