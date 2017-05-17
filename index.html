@@ -11,7 +11,7 @@
 <script src="http://vps.kirthos.dyjix.eu/Demineur/CanvasInput.min.js"></script>
 <script src="http://vps.kirthos.dyjix.eu/Demineur/node_modules/socket.io-client/dist/socket.io.js"></script>
 <script>
-	var socket = io.connect("http://" + window.location.host);
+	var socket = io.connect("http://vps.kirthos.dyjix.eu:8080");
 	var cursors;
 	var isLost = false;
 
@@ -75,6 +75,19 @@
         ui.style.top = "0px";
 		ui.style.position = "absolute";
 		document.body.appendChild(ui);
+
+		var sb = document.createElement('div');
+		sb.id = "Scoreboard";
+		sb.oncontextmenu = function(e) {e.preventDefault();}
+		sb.style.pointerEvents = "none";
+		sb.style.display = "block";
+		sb.style.left = "800px";
+        sb.style.top = "25px";
+		sb.style.right = "25px";
+        sb.style.bottom = "400px";
+		sb.style.position = "absolute";
+		document.getElementById('UI').appendChild(sb);
+
 		var iX = document.createElement('input');
 		iX.type = "text";
 		iX.style.pointerEvents = "auto";
