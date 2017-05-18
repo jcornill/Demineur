@@ -1,11 +1,22 @@
 var http = require('http');
 var fs = require('fs');
 var readline = require('readline');
+var mysql      = require('mysql');
 
 var rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout
 });
+
+var connection = mysql.createConnection({
+  host     : 'localhost',
+  user     : 'root',
+  password : 'eP7PL8SL',
+  database : 'Demineur'
+});
+connection.connect();
+
+var table = "Player";
 
 try {
 	var server = http.createServer(function(req, res) {});
@@ -315,16 +326,53 @@ io.sockets.on('connection', function (socket) {
 	socket.on('username', function(value)
 	{
 		console.log("Username Received");
-		value = value.escape();
-		if (socket.username == undefined)
+		var name = value.name.escape();
+		var pass = value.pass.escape();
+
+		connection.query('SELECT * from ' + table, function(err, rows, fields)
 		{
-			socket.username = value;
-			if (players[socket.username] == undefined)
-				players[socket.username] = {score:0};
-			socket.emit('printText', "You join the game.");
-			socket.broadcast.emit('printText', value + " has join the game.");
-		}
-		socket.emit('load', { pLength: length});
+			if (!err)
+			{
+				var found = false;
+				for (var i = 0; i < rows.length; i++) {
+					if (rows[i].Name === name)
+					{
+						if (rows[i].Password === pass)
+						{
+							found = true;
+							players[name] = {score:rows[i].Score};
+							socket.username = name;
+							socket.emit('printText', "You join the game.");
+							socket.broadcast.emit('printText', name + " has join the game.");
+							socket.emit('load', { pLength: length});
+							break;
+						}
+						else {
+							socket.emit('kick');
+							return;
+						}
+					}
+				}
+				if (found === false)
+				{
+					connection.query('INSERT INTO ' + table + " (Name, Password, Score) VALUES('" + name + "', '" + pass + "', 0)", function(err, rows, fields)
+					{
+						if (!err)
+						{
+							players[name] = {score:0};
+							socket.username = name;
+							socket.emit('printText', "You join the game.");
+							socket.broadcast.emit('printText', name + " has join the game.");
+							socket.emit('load', { pLength: length});
+						}
+						else
+							console.log('Error while performing Query.');
+					});
+				}
+			}
+			else
+				console.log('Error while performing Query.');
+		});
 	});
 
 	var test = function()
@@ -366,7 +414,17 @@ io.sockets.on('connection', function (socket) {
 	socket.on('disconnect', function()
 	{
 		if (socket.username != undefined)
+		{
 			socket.broadcast.emit('printText', socket.username + " has leave the game.");
+			connection.query('UPDATE ' + table + " SET Score = '" + players[socket.username].score + "' WHERE Name = '" + socket.username + "'", function(err, rows, fields)
+			{
+				if (!err)
+				{
+				}
+				else
+					console.log('Error while performing Query.');
+			});
+		}
 	});
 
 	socket.on('clic', function(action)
@@ -397,6 +455,7 @@ rl.on('line', function(input) {
 	if (input === "Stop")
 	{
 		io.emit('askDisconnect');
+		connection.end();
 		server.close();
 		rl.close();
 	}
