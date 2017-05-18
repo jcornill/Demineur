@@ -86,6 +86,7 @@ function processAction(x, y, button, socket)
 				}
 			}
 		}
+		return;
 	}
 
 	if (button === 2)
@@ -98,9 +99,12 @@ function processAction(x, y, button, socket)
 		if (getBomb(x, y) && vis === -2){
 			players[socket.username].score += 10;
 		}
+		else if (getBomb(x, y) && vis === -1) {
+			// Player remove a placed flag where is a bomb
+			players[socket.username].score -= 10;
+		}
 		else{
 			//TODO: Player place flag where is no bomb, What we do
-			socket.emit('printText', "Score: " + players[socket.username].score);
 		}
 		io.emit('processAction', {x:x, y:y, visibility:vis });
 		return;
@@ -265,11 +269,53 @@ function saveRegion(x, y)
     });
 }
 
+// Return a string that contain the all the leaderboard sorted
+function getLeaderboardText()
+{
+	var sortedPlayer = [];
+	var cpt = 0;
+	for (var player in players) {
+		if (players.hasOwnProperty(player)) {
+			sortedPlayer[cpt] = players[player];
+			sortedPlayer[cpt].name = player;
+			cpt++;
+		}
+	}
+	var returnValue = "";
+	sortedPlayer = sortedPlayer.sort(function (a, b)
+	{
+		if (a.score > b.score)
+			return -1;
+		if (a.score < b.score)
+			return 1;
+		return 0;
+	});
+	for (var i = 0; i < sortedPlayer.length; i++) {
+		if (i === 6)
+			break;
+		returnValue += sortedPlayer[i].name + ": " + sortedPlayer[i].score + "<br>";
+	}
+	return returnValue;
+}
+
+String.prototype.escape = function() {
+    var tagsToReplace = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;'
+    };
+    return this.replace(/[&<>]/g, function(tag) {
+        return tagsToReplace[tag] || tag;
+    });
+};
+
 io.sockets.on('connection', function (socket) {
 	socket.death = false;
 	socket.emit('askUsername');
 	socket.on('username', function(value)
 	{
+		console.log("Username Received");
+		value = value.escape();
 		if (socket.username == undefined)
 		{
 			socket.username = value;
@@ -312,6 +358,7 @@ io.sockets.on('connection', function (socket) {
 		else {
 			socket.emit('moveTo', players[socket.username].pos);
 		}
+		socket.emit('updateScore', getLeaderboardText());
 	}
 
 	socket.on('finishLoad', test);
@@ -327,6 +374,7 @@ io.sockets.on('connection', function (socket) {
 		if (socket.death)
 			return;
 		processAction(action.x, action.y, action.button, socket);
+		socket.emit('updateScore', getLeaderboardText());
 	});
 
 	socket.on('askInfo', function(pos)

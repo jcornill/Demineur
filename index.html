@@ -8,8 +8,8 @@
 <body>
 <!-- <button onclick="teleport()">Teleport</button> -->
 <script src="http://vps.kirthos.dyjix.eu/Demineur/phaser.min.js"></script>
-<script src="http://vps.kirthos.dyjix.eu/Demineur/CanvasInput.min.js"></script>
 <script src="http://vps.kirthos.dyjix.eu/Demineur/node_modules/socket.io-client/dist/socket.io.js"></script>
+
 <script>
 	var socket = io.connect("http://vps.kirthos.dyjix.eu:8080");
 	var cursors;
@@ -40,6 +40,7 @@
 	var loadFunct = function(obj)
 	{
 		length = obj.pLength;
+		console.log("Load start");
 		game = new Phaser.Game(width, height, Phaser.CANVAS, "", { preload: preload, create: create, update: update, render: render});
 		function preload() {
 		    game.load.image('cube', 'Assets/Cube.png');
@@ -86,6 +87,10 @@
 		sb.style.right = "25px";
         sb.style.bottom = "400px";
 		sb.style.position = "absolute";
+		sb.style.color = "#ffffff";
+		sb.style.backgroundColor = "rgba(150, 150, 150, 0.5)";
+		sb.style.textAlign = "center";
+		sb.innerHTML = "<h5>Leaderboard</h5>";
 		document.getElementById('UI').appendChild(sb);
 
 		var iX = document.createElement('input');
@@ -349,7 +354,11 @@ socket.on('loose', function() {
 
 socket.on('askUsername', function()
 {
-	socket.emit('username', prompt("Your name"));
+	var name = prompt("Your name");
+	while (name.length > 32)
+		name = prompt("Error: Your name");
+	console.log("Username send");
+	socket.emit('username', name);
 });
 
 socket.on('returnInfo', function(value)
@@ -367,6 +376,11 @@ socket.on('askDisconnect', function()
 	disconnect = true;
 	alert("The server has been shut down");
 	socket.disconnect();
+});
+
+socket.on('updateScore', function(score)
+{
+	document.getElementById('Scoreboard').innerHTML = "<h5>Leaderboard</h5><br>" + score;
 });
 
 socket.on('moveTo', function(pos)
