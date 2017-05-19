@@ -340,7 +340,7 @@ io.sockets.on('connection', function (socket) {
 						if (rows[i].Password === pass)
 						{
 							found = true;
-							players[name] = {score:rows[i].Score};
+							players[name] = {score:rows[i].Score, pos:{x:rows[i].camX, y:rows[i].camY}};
 							socket.username = name;
 							socket.emit('printText', "You join the game.");
 							socket.broadcast.emit('printText', name + " has join the game.");
@@ -416,13 +416,15 @@ io.sockets.on('connection', function (socket) {
 		if (socket.username != undefined)
 		{
 			socket.broadcast.emit('printText', socket.username + " has leave the game.");
-			connection.query('UPDATE ' + table + " SET Score = '" + players[socket.username].score + "' WHERE Name = '" + socket.username + "'", function(err, rows, fields)
+			var queryStr = 'UPDATE ' + table + " SET Score = '" + players[socket.username].score + "', camX = '"+ players[socket.username].pos.x +"', camY = '"+ players[socket.username].pos.y +"' WHERE Name = '" + socket.username + "'";
+			connection.query(queryStr, function(err, rows, fields)
 			{
 				if (!err)
 				{
+					console.log("Database updated for " + socket.username);
 				}
 				else
-					console.log('Error while performing Query.');
+					console.log('Error while performing Query: ' + queryStr);
 			});
 		}
 	});
@@ -431,6 +433,8 @@ io.sockets.on('connection', function (socket) {
 	{
 		if (socket.death)
 			return;
+		players[socket.username].pos.x = action.x;
+		players[socket.username].pos.y = action.y;
 		processAction(action.x, action.y, action.button, socket);
 		socket.emit('updateScore', getLeaderboardText());
 	});
@@ -454,7 +458,6 @@ io.sockets.on('connection', function (socket) {
 rl.on('line', function(input) {
 	if (input === "Stop")
 	{
-		io.emit('askDisconnect');
 		connection.end();
 		server.close();
 		rl.close();
@@ -467,6 +470,7 @@ rl.on('line', function(input) {
 				saveRegion(v.split(":")[0], v.split(":")[1]);
 			}
 		};
+		io.emit('askDisconnect');
 	}
 });
 

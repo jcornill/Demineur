@@ -357,9 +357,9 @@ function process(x, y, visibility)
 		else if (visibility === 5)
 			tmp.tint = 0x942f2f;
 		else if (visibility === 6)
-			tmp.tint = 0x3b999999;
+			tmp.tint = 0x3b9999;
 		else if (visibility === 7)
-			tmp.tint = 0xffffff;
+			tmp.tint = 0x000000;
 		var txt = {x: x, y: y, txt:tmp};
 		txts.push(txt);
 	}
@@ -448,8 +448,8 @@ socket.on('kick', function()
 socket.on('askDisconnect', function()
 {
 	disconnect = true;
-	alert("The server has been shut down");
 	socket.disconnect();
+	alert("The server has been shut down");
 });
 
 socket.on('updateScore', function(score)
