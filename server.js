@@ -11,7 +11,7 @@ var rl = readline.createInterface({
 var connection = mysql.createConnection({
   host     : 'localhost',
   user     : 'root',
-  password : 'eP7PL8SL',
+  password : '',
   database : 'Demineur'
 });
 connection.connect();
