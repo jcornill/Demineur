@@ -1,11 +1,22 @@
 var http = require('http');
 var fs = require('fs');
 var readline = require('readline');
+var mysql      = require('mysql');
 
 var rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout
 });
+
+var connection = mysql.createConnection({
+  host     : 'localhost',
+  user     : 'root',
+  password : 'eP7PL8SL',
+  database : 'Demineur'
+});
+connection.connect();
+
+var table = "Player";
 
 try {
 	var server = http.createServer(function(req, res) {});
@@ -86,6 +97,7 @@ function processAction(x, y, button, socket)
 				}
 			}
 		}
+		return;
 	}
 
 	if (button === 2)
@@ -98,9 +110,12 @@ function processAction(x, y, button, socket)
 		if (getBomb(x, y) && vis === -2){
 			players[socket.username].score += 10;
 		}
+		else if (getBomb(x, y) && vis === -1) {
+			// Player remove a placed flag where is a bomb
+			players[socket.username].score -= 10;
+		}
 		else{
 			//TODO: Player place flag where is no bomb, What we do
-			socket.emit('printText', "Score: " + players[socket.username].score);
 		}
 		io.emit('processAction', {x:x, y:y, visibility:vis });
 		return;
@@ -265,20 +280,99 @@ function saveRegion(x, y)
     });
 }
 
+// Return a string that contain the all the leaderboard sorted
+function getLeaderboardText()
+{
+	var sortedPlayer = [];
+	var cpt = 0;
+	for (var player in players) {
+		if (players.hasOwnProperty(player)) {
+			sortedPlayer[cpt] = players[player];
+			sortedPlayer[cpt].name = player;
+			cpt++;
+		}
+	}
+	var returnValue = "";
+	sortedPlayer = sortedPlayer.sort(function (a, b)
+	{
+		if (a.score > b.score)
+			return -1;
+		if (a.score < b.score)
+			return 1;
+		return 0;
+	});
+	for (var i = 0; i < sortedPlayer.length; i++) {
+		if (i === 6)
+			break;
+		returnValue += sortedPlayer[i].name + ": " + sortedPlayer[i].score + "<br>";
+	}
+	return returnValue;
+}
+
+String.prototype.escape = function() {
+    var tagsToReplace = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;'
+    };
+    return this.replace(/[&<>]/g, function(tag) {
+        return tagsToReplace[tag] || tag;
+    });
+};
+
 io.sockets.on('connection', function (socket) {
 	socket.death = false;
 	socket.emit('askUsername');
 	socket.on('username', function(value)
 	{
-		if (socket.username == undefined)
+		console.log("Username Received");
+		var name = value.name.escape();
+		var pass = value.pass.escape();
+
+		connection.query('SELECT * from ' + table, function(err, rows, fields)
 		{
-			socket.username = value;
-			if (players[socket.username] == undefined)
-				players[socket.username] = {score:0};
-			socket.emit('printText', "You join the game.");
-			socket.broadcast.emit('printText', value + " has join the game.");
-		}
-		socket.emit('load', { pLength: length});
+			if (!err)
+			{
+				var found = false;
+				for (var i = 0; i < rows.length; i++) {
+					if (rows[i].Name === name)
+					{
+						if (rows[i].Password === pass)
+						{
+							found = true;
+							players[name] = {score:rows[i].Score, pos:{x:rows[i].camX, y:rows[i].camY}};
+							socket.username = name;
+							socket.emit('printText', "You join the game.");
+							socket.broadcast.emit('printText', name + " has join the game.");
+							socket.emit('load', { pLength: length});
+							break;
+						}
+						else {
+							socket.emit('kick');
+							return;
+						}
+					}
+				}
+				if (found === false)
+				{
+					connection.query('INSERT INTO ' + table + " (Name, Password, Score) VALUES('" + name + "', '" + pass + "', 0)", function(err, rows, fields)
+					{
+						if (!err)
+						{
+							players[name] = {score:0};
+							socket.username = name;
+							socket.emit('printText', "You join the game.");
+							socket.broadcast.emit('printText', name + " has join the game.");
+							socket.emit('load', { pLength: length});
+						}
+						else
+							console.log('Error while performing Query.');
+					});
+				}
+			}
+			else
+				console.log('Error while performing Query.');
+		});
 	});
 
 	var test = function()
@@ -312,6 +406,7 @@ io.sockets.on('connection', function (socket) {
 		else {
 			socket.emit('moveTo', players[socket.username].pos);
 		}
+		socket.emit('updateScore', getLeaderboardText());
 	}
 
 	socket.on('finishLoad', test);
@@ -319,14 +414,29 @@ io.sockets.on('connection', function (socket) {
 	socket.on('disconnect', function()
 	{
 		if (socket.username != undefined)
+		{
 			socket.broadcast.emit('printText', socket.username + " has leave the game.");
+			var queryStr = 'UPDATE ' + table + " SET Score = '" + players[socket.username].score + "', camX = '"+ players[socket.username].pos.x +"', camY = '"+ players[socket.username].pos.y +"' WHERE Name = '" + socket.username + "'";
+			connection.query(queryStr, function(err, rows, fields)
+			{
+				if (!err)
+				{
+					console.log("Database updated for " + socket.username);
+				}
+				else
+					console.log('Error while performing Query: ' + queryStr);
+			});
+		}
 	});
 
 	socket.on('clic', function(action)
 	{
 		if (socket.death)
 			return;
+		players[socket.username].pos.x = action.x;
+		players[socket.username].pos.y = action.y;
 		processAction(action.x, action.y, action.button, socket);
+		socket.emit('updateScore', getLeaderboardText());
 	});
 
 	socket.on('askInfo', function(pos)
@@ -348,7 +458,7 @@ io.sockets.on('connection', function (socket) {
 rl.on('line', function(input) {
 	if (input === "Stop")
 	{
-		io.emit('askDisconnect');
+		connection.end();
 		server.close();
 		rl.close();
 	}
@@ -360,6 +470,7 @@ rl.on('line', function(input) {
 				saveRegion(v.split(":")[0], v.split(":")[1]);
 			}
 		};
+		io.emit('askDisconnect');
 	}
 });
 
