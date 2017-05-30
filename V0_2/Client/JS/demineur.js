@@ -1,0 +1,513 @@
+	var socket = io.connect("http://vps.kirthos.dyjix.eu:8080");
+	var cursors;
+	var isLost = false;
+
+	var spriteList = [];
+	var txts = [];
+
+	var game;
+	var isClick = false;
+	var length;
+
+	var width = 1152;
+	var height = 648;
+
+	var tileHeight = 32;
+	var tileWidth = 32;
+
+	var startX = 0;
+	var startY = 0;
+	var endX = Math.floor(width / tileWidth) + 2;
+	var endY = Math.floor(height / tileHeight) + 2;
+	var indexX = 0;
+	var indexY = 0;
+
+	var disconnect = false;
+
+	var loadFunct = function(obj)
+	{
+		document.body.removeChild(menuDiv);
+		length = obj.pLength;
+		console.log("Load start");
+		game = new Phaser.Game(width, height, Phaser.CANVAS, "", { preload: preload, create: create, update: update, render: render});
+		function preload() {
+		    game.load.image('cube', 'Assets/Cube.png');
+			game.load.image('cubePress', 'Assets/CubePress.png');
+			game.load.image('empty', 'Assets/Empty.png');
+			game.load.image('flag', 'Assets/Flag.png');
+			game.load.image('bomb', 'Assets/Bomb.png');
+			game.stage.backgroundColor = '#808080';
+			game.canvas.id = "Game";
+			game.canvas.style.left = "0px";
+	        game.canvas.style.top = "0px";
+			for (var i = 0; i < endX; i++) {
+				var tmp = [];
+				spriteList.push(tmp);
+			}
+		}
+
+	}
+
+	function create() {
+		game.canvas.oncontextmenu = function (e) { e.preventDefault(); }
+		game.world.setBounds(0, 0, (10000 - 1) * tileWidth, (10000 - 1) * tileHeight);
+		cursors = game.input.keyboard.createCursorKeys();
+
+		var ui = document.createElement('div');
+		ui.id = "UI";
+		ui.oncontextmenu = function(e) {e.preventDefault();}
+		ui.style.pointerEvents = "none";
+		ui.style.width  = game.canvas.width + "px";
+		ui.style.height = game.canvas.height + "px";
+		ui.style.display = "block";
+		ui.style.left = "0px";
+        ui.style.top = "0px";
+		ui.style.position = "absolute";
+		document.body.appendChild(ui);
+
+		var sb = document.createElement('div');
+		sb.id = "Scoreboard";
+		sb.oncontextmenu = function(e) {e.preventDefault();}
+		sb.style.pointerEvents = "none";
+		sb.style.display = "block";
+		sb.style.left = "800px";
+        sb.style.top = "25px";
+		sb.style.right = "25px";
+        sb.style.bottom = "400px";
+		sb.style.position = "absolute";
+		sb.style.color = "#ffffff";
+		sb.style.backgroundColor = "rgba(150, 150, 150, 0.5)";
+		sb.style.textAlign = "center";
+		sb.innerHTML = "<h5>Leaderboard</h5>";
+		document.getElementById('UI').appendChild(sb);
+
+		var iX = document.createElement('input');
+		iX.type = "text";
+		iX.style.pointerEvents = "auto";
+		iX.style.width = "75px";
+		iX.style.height = "30px";
+		iX.style.right = "145px";
+        iX.style.bottom = "10px";
+		iX.style.position = "absolute";
+		document.getElementById('UI').appendChild(iX);
+		var iY = document.createElement('input');
+		iY.type = "text";
+		iY.style.pointerEvents = "auto";
+		iY.style.width = "75px";
+		iY.style.height = "30px";
+		iY.style.right = "60px";
+        iY.style.bottom = "10px";
+		iY.style.position = "absolute";
+		document.getElementById('UI').appendChild(iY);
+		var button = document.createElement('input');
+		button.type = "button";
+		button.value = "Go";
+		button.style.pointerEvents = "auto";
+		button.style.width = "50px";
+		button.style.height = "50px";
+		button.style.right = "5px";
+        button.style.bottom = "5px";
+		button.style.position = "absolute";
+		document.getElementById('UI').appendChild(button);
+		button.onclick = function()
+		{
+			var pX = Math.floor(iX.value / tileWidth);
+			var pY = Math.floor(iY.value / tileHeight);
+			console.log(pX + ":" + pY);
+			socket.emit('askTeleport', {x: pX, y:pY});
+		};
+		socket.emit('finishLoad');
+
+	}
+
+	var b = 1;
+	var spr = undefined;
+
+	function update() {
+		if (isLost || disconnect)
+			return;
+		moveCamera();
+		var distanceMouse = 0;
+		var fX = 0;
+		var fY = 0;
+		if (game.input.activePointer.isDown && !isClick)
+   		{
+			fX = game.input.position.x;
+			fY = game.input.position.y;
+			var pX = game.input.position.x + game.camera.x;
+			var pY = game.input.position.y + game.camera.y;
+			pX = Math.floor(pX / tileWidth);
+			pY = Math.floor(pY / tileHeight);
+			if (pX < startX + indexX || pX > endX + indexX || pY < startY + indexY || pY > endY + indexY)
+				return;
+			b = 1;
+			if (game.input.mouse.button==2)
+				b = 2;
+			if (spriteList[pX % endX][pY % endY].key === "cube")
+			{
+				spriteList[pX % endX][pY % endY].destroy();
+				spr = spriteList[pX % endX][pY % endY] = game.add.sprite(pX * tileWidth, pY * tileHeight, 'cubePress');
+			}
+			isClick = true;
+   		}
+		if (game.input.activePointer.isUp && isClick)
+		{
+			var pX = game.input.position.x + game.camera.x;
+			var pY = game.input.position.y + game.camera.y;
+			pX = Math.floor(pX / tileWidth);
+			pY = Math.floor(pY / tileHeight);
+			if (pX < startX + indexX || pX > endX + indexX || pY < startY + indexY || pY > endY + indexY)
+				return;
+			if (spr != undefined)
+			{
+				if (spr.x !== pX || spr.y !== pY)
+					spriteList[spr.x/tileWidth % endX][spr.y/tileHeight % endY] = game.add.sprite(spr.x, spr.y, 'cube');
+				spr.destroy();
+				spr = undefined;
+			}
+			// A test for move camera when clic and drag camera but don't work
+			// distanceMouse = (game.input.position.x - fX) * (game.input.position.x - fX) + (game.input.position.y - fY) * (game.input.position.y - fY);
+			// if (distanceMouse > 500000)
+			// {
+			// 	var difX = game.input.position.x - fX;
+			// 	var difY = game.input.position.y - fY;
+			// 	if (difX > 0)
+			// 		moveCameraRight(10);
+			// 	if (difX < 0)
+			// 		moveCameraLeft(10);
+			// 	if (difY > 0)
+			// 		moveCameraBottom(10);
+			// 	if (difY < 0)
+			// 		moveCameraTop(10);
+			// 	isClick = false;
+			// 	return;
+			// }
+			socket.emit('clic', {x: pX, y: pY, button: b});
+			isClick = false;
+		}
+	}
+
+
+function moveCameraRight(speed)
+{
+	game.camera.x += speed;
+	if (Math.floor(game.camera.x / tileWidth) > indexX)
+	{
+		for (var i = startY + indexY; i < endY + indexY; i++) {
+			if (spriteList[(startX + indexX) % endX][i % endY] == undefined)
+				continue;
+			spriteList[(startX + indexX) % endX][i % endY].destroy();
+			for (var tt of txts) {
+				if (tt.x === (startX + indexX) && tt.y === i)
+				{
+					tt.txt.destroy();
+					txts.splice(txts.indexOf(tt), 1);
+				}
+			}
+		}
+		indexX++;
+		for (var i = startY + indexY; i < endY + indexY; i++) {
+			socket.emit('askInfo', {x: endX + indexX - 1, y: i})
+		}
+	}
+}
+
+function moveCameraLeft(speed)
+{
+	game.camera.x -= speed;
+	if (Math.floor(game.camera.x / tileWidth) < indexX)
+	{
+		for (var i = startY + indexY; i < endY + indexY; i++) {
+			if (spriteList[(endX + indexX - 1) % endX][i % endY] == undefined)
+				continue;
+			spriteList[(endX + indexX - 1) % endX][i % endY].destroy();
+			for (var tt of txts) {
+				if (tt.x === (endX + indexX - 1) && tt.y === i)
+				{
+					tt.txt.destroy();
+					txts.splice(txts.indexOf(tt), 1);
+				}
+			}
+		}
+		indexX--;
+		for (var i = startY + indexY; i < endY + indexY; i++) {
+			socket.emit('askInfo', {x: startX + indexX, y: i})
+		}
+	}
+}
+
+function moveCameraTop(speed)
+{
+	game.camera.y -= speed;
+	if (Math.floor(game.camera.y / tileHeight) < indexY)
+	{
+		for (var i = startX + indexX; i < endX + indexX; i++) {
+			if (spriteList[i % endX][(endY + indexY - 1) % endY] == undefined)
+				continue;
+			spriteList[i % endX][(endY + indexY - 1) % endY].destroy();
+			for (var tt of txts) {
+				if (tt.x === i && tt.y === (endY + indexY - 1))
+				{
+					tt.txt.destroy();
+					txts.splice(txts.indexOf(tt), 1);
+				}
+			}
+		}
+		indexY--;
+		for (var i = startX + indexX; i < endX + indexX; i++) {
+			socket.emit('askInfo', {x: i, y: startY + indexY})
+		}
+	}
+}
+
+function moveCameraBottom(speed)
+{
+	game.camera.y += speed;
+	if (Math.floor(game.camera.y / tileHeight) > indexY)
+	{
+		for (var i = startX + indexX; i < endX + indexX; i++) {
+			if (spriteList[i % endX][(startY + indexY) % endY] == undefined)
+				continue;
+			spriteList[i % endX][(startY + indexY) % endY].destroy();
+			for (var tt of txts) {
+				if (tt.x === i && tt.y === (startY + indexY))
+				{
+					tt.txt.destroy();
+					txts.splice(txts.indexOf(tt), 1);
+				}
+			}
+		}
+		indexY++;
+		for (var i = startX + indexX; i < endX + indexX; i++) {
+			socket.emit('askInfo', {x: i, y: endY + indexY - 1})
+		}
+	}
+}
+
+function moveCamera()
+{
+	var speed = 4;
+	if (cursors.right.shiftKey)
+		speed = 20;
+	if (cursors.down.shiftKey)
+		speed = 20;
+	if (cursors.up.shiftKey)
+		speed = 20;
+	if (cursors.left.shiftKey)
+		speed = 20;
+	if (cursors.right.isDown)
+	{
+		moveCameraRight(speed);
+	}
+	if (cursors.left.isDown)
+	{
+		moveCameraLeft(speed);
+	}
+	if (cursors.up.isDown)
+	{
+		moveCameraTop(speed);
+	}
+	if (cursors.down.isDown)
+	{
+		moveCameraBottom(speed);
+	}
+}
+
+function process(x, y, visibility)
+{
+	if (x < startX + indexX || x > endX + indexX - 1 || y < startY + indexY || y > endY + indexY - 1)
+		return;
+	console.log(visibility);
+	if (visibility < 0) // If visibility is negative => error occurs we re ask the info
+		socket.emit('askInfo', {x: x, y: y})
+	if (spriteList[x % endX][y % endY] != undefined)
+		spriteList[x % endX][y % endY].destroy();
+		// If flag we print the flag
+	if (visibility === 10)
+	{
+		var sprite = game.add.sprite(x * tileWidth, y * tileHeight, 'flag');
+		spriteList[x % endX][y % endY] = sprite;
+	}
+	// if undiscover we place a cube
+	else if (visibility === 9)
+	{
+		spriteList[x % endX][y % endY] = game.add.sprite(x * tileWidth, y * tileHeight, 'cube');
+	}
+	else
+	{
+		spriteList[x % endX][y % endY] = game.add.sprite(x * tileWidth, y * tileHeight, 'empty');
+		var tmp = game.add.text(x * tileWidth + 7, y * tileHeight + 5, visibility, { font: "25px Arial", fill: "#ffffff" });
+		if (visibility === 1)
+			tmp.tint = 0x0000ff;
+		else if (visibility === 2)
+			tmp.tint = 0x008200;
+		else if (visibility === 3)
+			tmp.tint = 0xff0000;
+		else if (visibility === 4)
+			tmp.tint = 0x000084;
+		else if (visibility === 5)
+			tmp.tint = 0x942f2f;
+		else if (visibility === 6)
+			tmp.tint = 0x3b9999;
+		else if (visibility === 7)
+			tmp.tint = 0x000000;
+		var txt = {x: x, y: y, txt:tmp};
+		txts.push(txt);
+	}
+}
+
+var logText = [];
+
+function render() {
+	if (game == undefined)
+		return;
+	game.debug.cameraInfo(game.camera, 32, 32);
+	if (logText.length > 5)
+		logText.splice(0, 1);
+	for (var i = 0; i < logText.length; i++) {
+		game.debug.text(logText[i], 32, height - 85 + 16*i);
+	}
+}
+
+socket.on('load', loadFunct);
+socket.on('processAction', function(action)
+{
+	if (game)
+		process(action.x, action.y, action.visibility);
+});
+
+socket.on('loose', function() {
+	var pX = game.input.position.x + game.camera.x;
+	var pY = game.input.position.y + game.camera.y;
+	pX = Math.floor(pX / tileWidth);
+	pY = Math.floor(pY / tileHeight);
+	game.add.sprite(pX * tileWidth, pY * tileHeight, 'bomb');
+	alert('Perdu !');
+	isLost = true;
+});
+
+socket.on('askUsername', function()
+{
+	var menuDiv = document.createElement("div");
+	menuDiv.id = "menuDiv";
+
+	var loginDiv = document.createElement("div");
+	loginDiv.id = "loginDiv";
+
+	var errorMessageStr = document.createTextNode("");
+	var errorMessageSpan = document.createElement("span");
+	errorMessageSpan.id = "errorMessage";
+	errorMessageSpan.appendChild(errorMessageStr);
+	loginDiv.appendChild(errorMessageSpan);
+
+	var titleNameStr = document.createTextNode("Demineur");
+	var titleNameSpan = document.createElement("span");
+	titleNameSpan.id = "title";
+	titleNameSpan.appendChild(titleNameStr);
+	loginDiv.appendChild(titleNameSpan);
+
+	var usernameStr = document.createTextNode(" Username: ");
+	var usernameSpan = document.createElement("span");
+	usernameSpan.id = "username";
+	usernameSpan.appendChild(usernameStr);
+	loginDiv.appendChild(usernameSpan);
+
+	var nameInput = document.createElement('input');
+	nameInput.type = "text";
+	nameInput.id = "nameInput";
+
+	loginDiv.appendChild(nameInput);
+
+	var passStr = document.createTextNode(" Password: ");
+	var passSpan = document.createElement("span");
+	passSpan.id = "password";
+	passSpan.appendChild(passStr);
+	loginDiv.appendChild(passSpan);
+
+	var pass = document.createElement('input');
+	pass.type = "text";
+	pass.id = "passInput";
+	loginDiv.appendChild(pass);
+
+	var varvar = document.createTextNode("  ");
+	loginDiv.appendChild(varvar);
+
+	var button = document.createElement('input');
+	button.type = "button";
+	button.id = "buttonPlay";
+	button.value = "Play";
+	loginDiv.appendChild(button);
+	button.onclick = function()
+	{
+		if (nameInput.value.length > 32)
+		{
+			errorMessageStr.nodeValue = "Username need to be less than 32 characters";
+			return;
+		}
+		else if (nameInput.value.length < 3)
+		{
+			errorMessageStr.nodeValue = "Username need to have at least 2 characters";
+			return;
+		}
+		socket.emit('username', {name:nameInput.value, pass:pass.value});
+	};
+	menuDiv.appendChild(loginDiv);
+	document.body.appendChild(menuDiv);
+});
+
+socket.on('errorConnect', function()
+{
+	document.getElementById("errorMessage").childNodes[0].nodeValue = "Error in login or password";
+});
+
+socket.on('returnInfo', function(value)
+{
+	process(value.x, value.y, value.v);
+});
+
+socket.on('printText', function(message)
+{
+	logText.push(message);
+});
+
+socket.on('askDisconnect', function()
+{
+	disconnect = true;
+	socket.disconnect();
+	alert("The server has been shut down");
+});
+
+socket.on('updateScore', function(score)
+{
+	if(document.getElementById('Scoreboard') == undefined)
+		return;
+	document.getElementById('Scoreboard').innerHTML = "<h5>Leaderboard</h5><br>" + score;
+});
+
+socket.on('moveTo', function(pos)
+{
+	if (pos.x - Math.floor((width / tileWidth + 2) / 2) < 0 || pos.y - Math.floor((height / tileHeight + 2) / 2) < 0 || pos.x == undefined || pos.y == undefined)
+	{
+		alert("Error");
+		return;
+	}
+	game.camera.x = pos.x * tileWidth - width / 2;
+	game.camera.y = pos.y * tileHeight - height / 2;
+
+	console.log("movingCam to " + (pos.x * tileWidth - width / 2) + ":" + (pos.y * tileHeight - height / 2));
+
+	// var startX = pos.x - (Math.floor(width / tileWidth) + 2) / 2;
+	// var startY = pos.y - (Math.floor(height / tileHeight) + 2) / 2;
+	// var endX = pos.x + (Math.floor(width / tileWidth) + 2) / 2;
+	// var endY = pos.y + (Math.floor(height / tileHeight) + 2) / 2;
+	indexX = pos.x - Math.floor((width / tileWidth + 2) / 2);
+	indexY = pos.y - Math.floor((height / tileHeight + 2) / 2);
+
+	console.log("Index " + indexX + ":" + indexY);
+
+	for (var i = startX + indexX; i < endX + indexX; i++) {
+		for (var j = startY + indexY; j < endY + indexY; j++) {
+			socket.emit('askInfo', {x: i, y: j})
+		}
+	}
+});
