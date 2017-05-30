@@ -31,11 +31,11 @@
 		console.log("Load start");
 		game = new Phaser.Game(width, height, Phaser.CANVAS, "", { preload: preload, create: create, update: update, render: render});
 		function preload() {
-		    game.load.image('cube', 'Assets/Cube.png');
-			game.load.image('cubePress', 'Assets/CubePress.png');
-			game.load.image('empty', 'Assets/Empty.png');
-			game.load.image('flag', 'Assets/Flag.png');
-			game.load.image('bomb', 'Assets/Bomb.png');
+		    game.load.image('cube', 'Client/Assets/Cube.png');
+			game.load.image('cubePress', 'Client/Assets/CubePress.png');
+			game.load.image('empty', 'Client/Assets/Empty.png');
+			game.load.image('flag', 'Client/Assets/Flag.png');
+			game.load.image('bomb', 'Client/Assets/Bomb.png');
 			game.stage.backgroundColor = '#808080';
 			game.canvas.id = "Game";
 			game.canvas.style.left = "0px";
