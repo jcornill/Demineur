@@ -45,7 +45,7 @@ var players = [];
 // Laod all the spawning regions
 for (var i = 0; i < 4; i++) {
 	for (var j = 0; j < 4; j++) {
-		loadRegion(i,j);
+		loadRegionBdd(i,j);
 	}
 }
 
@@ -69,7 +69,7 @@ function createRegion(x, y)
 	}
 	regions[x+":"+y] = {data:regionData};
 	console.log("Creating complete");
-	saveRegion(x, y);
+	saveRegionBdd(x, y);
 }
 
 // Count the number of flag posed around a point
@@ -266,6 +266,39 @@ function loadRegion(x, y)
 	});
 }
 
+function loadRegionBdd(x, y)
+{
+	if (loader.includes(x+":"+y))
+		return;
+	console.log("Ask load regionBdd " + x + ":" + y);
+	var tmpData = [];
+	loader.push(x+":"+y);
+	var queryStr = "SELECT Region from Map WHERE x = '" + x + "' AND y = '" + y + "'";
+	connection.query(queryStr, function(err, rows, fields)
+	{
+		if (!err)
+		{
+			if (rows.length > 0)
+			{
+				var tmpData = [];
+				for (var i = 0; i < regionSize; i++) {
+					tmpData.push([]);
+					for (var j = 0; j < regionSize; j++) {
+						tmpData[i][j] = rows[0].Region[j + i * regionSize];
+					}
+				}
+				regions[x+":"+y] = {data:tmpData};
+				console.log("bddLoad " + x + ":" + y + " done");
+			}
+			else {
+				createRegion(x, y);
+			}
+		}
+		else
+			console.log('Error while performing Query: ' + queryStr);
+	});
+}
+
 function getBlobFromRegion(x, y)
 {
 	var buf = Buffer.alloc(regionSize * regionSize);
@@ -284,24 +317,27 @@ function getBlobFromRegion(x, y)
 
 function saveRegionBdd(x, y)
 {
-	console.log("Ask save region " + x + ":" + y)
+	console.log("Ask save regionBdd " + x + ":" + y)
 	connection.query('SELECT x, y from Map', function(err, rows, fields)
 	{
 		if (!err)
 		{
 			var found = false;
 			for (var i = 0; i < rows.length; i++) {
-				if (rows[i].x === x)
+				if (rows[i].x == x && rows[i].y == y)
 				{
-					if (rows[i].y === y)
+					found = true;
+					var queryStr = "UPDATE Map SET Region = '" + getBlobFromRegion(x, y) + "' WHERE x = '" + x + "' AND y = '" + y + "'";
+					connection.query(queryStr, function(err, rows, fields)
 					{
-						found = true;
-						break;
-					}
-					else {
-						console.log("Error when saving a existing region");
-						return;
-					}
+						if (!err)
+						{
+							console.log("Region " + x + ":" + y + " updated");
+						}
+						else
+							console.log('Error while performing Query: ' + queryStr);
+					});
+					break;
 				}
 			}
 			if (found === false)
@@ -558,7 +594,7 @@ rl.on('line', function(input) {
 		console.log("saveall");
 		for (var v in regions) {
 			if (regions.hasOwnProperty(v)) {
-				saveRegion(v.split(":")[0], v.split(":")[1]);
+				saveRegionBdd(v.split(":")[0], v.split(":")[1]);
 			}
 		};
 		io.emit('askDisconnect');
