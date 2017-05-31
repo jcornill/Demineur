@@ -2,18 +2,15 @@ var http = require('http');
 var fs = require('fs');
 var readline = require('readline');
 var mysql      = require('mysql');
+var bddConnect = require('bddConnect');
 
 var rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout
 });
 
-var connection = mysql.createConnection({
-  host     : 'localhost',
-  user     : 'root',
-  password : '',
-  database : 'Demineur'
-});
+var connection = bddConnect.connect();
+
 connection.connect();
 
 var table = "Player";
