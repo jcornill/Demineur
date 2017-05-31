@@ -49,6 +49,11 @@ for (var i = 0; i < 4; i++) {
 	}
 }
 
+// var a = regions["0:0"].map(function (x) {
+//     x = x.toString(16); // to hex
+//     return x
+// }).join('');
+
 // Load the leaderboard players
 loadLeaderboardLeader();
 
@@ -258,6 +263,62 @@ function loadRegion(x, y)
 		regions[x+":"+y] = {data:tmpData};
 		loader.splice(loader.indexOf(x+":"+y), 1);
 		console.log("Load end");
+	});
+}
+
+function getBlobFromRegion(x, y)
+{
+	var buf = Buffer.alloc(regionSize * regionSize);
+
+	var index = 0
+	regions[x+":"+y].data.map(function(c)
+	{
+		c.map(function (b)
+		{
+			buf[index] = b;
+			index++;
+		})
+	});
+	return buf;
+}
+
+function saveRegionBdd(x, y)
+{
+	console.log("Ask save region " + x + ":" + y)
+	connection.query('SELECT x, y from Map', function(err, rows, fields)
+	{
+		if (!err)
+		{
+			var found = false;
+			for (var i = 0; i < rows.length; i++) {
+				if (rows[i].x === x)
+				{
+					if (rows[i].y === y)
+					{
+						found = true;
+						break;
+					}
+					else {
+						console.log("Error when saving a existing region");
+						return;
+					}
+				}
+			}
+			if (found === false)
+			{
+				connection.query("INSERT INTO Map (x, y, Region) VALUES('" + x + "', '" + y + "', '" + getBlobFromRegion(x, y) + "')", function(err, rows, fields)
+				{
+					if (!err)
+					{
+						console.log("Successfully inserted new region");
+					}
+					else
+						console.log('Error while inserted new region.');
+				});
+			}
+		}
+		else
+			console.log('Error while performing Query.');
 	});
 }
 
