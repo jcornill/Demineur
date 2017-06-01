@@ -414,9 +414,17 @@ function getLeaderboardText()
 		return 0;
 	});
 	for (var i = 0; i < sortedPlayer.length; i++) {
+		players[sortedPlayer[i].name].ranks = i + 1;
+	}
+	for (var i = 0; i < sortedPlayer.length; i++) {
 		if (i === 5)
 			break;
-		returnValue += sortedPlayer[i].name + ": " + sortedPlayer[i].score + "<br>";
+		if (sortedPlayer[i].name.length >= 16)
+		{
+			sortedPlayer[i].name = sortedPlayer[i].name.substring(0, 16);
+		}
+		var toPrint = sortedPlayer[i].name + ":" + " ".repeat(16 - sortedPlayer[i].name.length);
+		returnValue += "<pre> <font color=\"yellow\">#" + (i + 1) + "</font>  " + toPrint + "  " + sortedPlayer[i].score + "<br></pre>";
 	}
 	return returnValue;
 }
@@ -578,6 +586,22 @@ io.sockets.on('connection', function (socket) {
 	{
 		socket.emit('moveTo', pos);
 	});
+
+	socket.on('askPersonalScore', function()
+	{
+		var returnValue = "";
+		var pl = players[socket.username];
+		if (pl.ranks <= 5)
+			return;
+		if (pl.name.length >= 16)
+		{
+			pl.name = pl.name.substring(0, 16);
+		}
+		var toPrint = pl.name + ":" + " ".repeat(16 - pl.name.length);
+		returnValue += "<pre> <font color=\"yellow\">#" + ((pl.ranks > 9) ? pl.ranks : (pl.ranks + " ")) + "</font> <font color=\"#ffd700\">" + toPrint + "  " + pl.score + "</font><br></pre>";
+		socket.emit('returnPersonalScore', returnValue);
+	});
+
 });
 
 setInterval(function() {io.emit("updateScore", getLeaderboardText());}, 3000);

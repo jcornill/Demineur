@@ -9,8 +9,8 @@
 	var isClick = false;
 	var length;
 
-	var width = 1152;
-	var height = 648;
+	var width = window.innerWidth; //1142;
+	var height = window.innerHeight; //648;
 
 	var tileHeight = 32;
 	var tileWidth = 32;
@@ -24,6 +24,8 @@
 
 	var disconnect = false;
 
+	var actifUsername = "";
+
 	var loadFunct = function(obj)
 	{
 		document.body.removeChild(menuDiv);
@@ -36,6 +38,12 @@
 			game.load.image('empty', 'Client/Assets/Empty.png');
 			game.load.image('flag', 'Client/Assets/Flag.png');
 			game.load.image('bomb', 'Client/Assets/Bomb.png');
+			game.load.image('1', 'Client/Assets/1.png');
+			game.load.image('2', 'Client/Assets/2.png');
+			game.load.image('3', 'Client/Assets/3.png');
+			game.load.image('4', 'Client/Assets/4.png');
+			game.load.image('5', 'Client/Assets/5.png');
+			game.time.advancedTiming = true;
 			game.stage.backgroundColor = '#808080';
 			game.canvas.id = "Game";
 			game.canvas.style.left = "0px";
@@ -66,19 +74,9 @@
 		document.body.appendChild(ui);
 
 		var sb = document.createElement('div');
-		sb.id = "Scoreboard";
+		sb.id = "scoreboard";
 		sb.oncontextmenu = function(e) {e.preventDefault();}
-		sb.style.pointerEvents = "none";
-		sb.style.display = "block";
-		sb.style.left = "800px";
-        sb.style.top = "25px";
-		sb.style.right = "25px";
-        sb.style.bottom = "400px";
-		sb.style.position = "absolute";
-		sb.style.color = "#ffffff";
-		sb.style.backgroundColor = "rgba(150, 150, 150, 0.5)";
-		sb.style.textAlign = "center";
-		sb.innerHTML = "<h5>Leaderboard</h5>";
+		sb.innerHTML = '<h5 align="center">Leaderboard</h5>';
 		document.getElementById('UI').appendChild(sb);
 
 		var iX = document.createElement('input');
@@ -165,23 +163,6 @@
 				spr.destroy();
 				spr = undefined;
 			}
-			// A test for move camera when clic and drag camera but don't work
-			// distanceMouse = (game.input.position.x - fX) * (game.input.position.x - fX) + (game.input.position.y - fY) * (game.input.position.y - fY);
-			// if (distanceMouse > 500000)
-			// {
-			// 	var difX = game.input.position.x - fX;
-			// 	var difY = game.input.position.y - fY;
-			// 	if (difX > 0)
-			// 		moveCameraRight(10);
-			// 	if (difX < 0)
-			// 		moveCameraLeft(10);
-			// 	if (difY > 0)
-			// 		moveCameraBottom(10);
-			// 	if (difY < 0)
-			// 		moveCameraTop(10);
-			// 	isClick = false;
-			// 	return;
-			// }
 			socket.emit('clic', {x: pX, y: pY, button: b});
 			isClick = false;
 		}
@@ -317,7 +298,6 @@ function process(x, y, visibility)
 {
 	if (x < startX + indexX || x > endX + indexX - 1 || y < startY + indexY || y > endY + indexY - 1)
 		return;
-	console.log(visibility);
 	if (visibility < 0) // If visibility is negative => error occurs we re ask the info
 		socket.emit('askInfo', {x: x, y: y})
 	if (spriteList[x % endX][y % endY] != undefined)
@@ -335,24 +315,34 @@ function process(x, y, visibility)
 	}
 	else
 	{
-		spriteList[x % endX][y % endY] = game.add.sprite(x * tileWidth, y * tileHeight, 'empty');
-		var tmp = game.add.text(x * tileWidth + 7, y * tileHeight + 5, visibility, { font: "25px Arial", fill: "#ffffff" });
-		if (visibility === 1)
-			tmp.tint = 0x0000ff;
+		if (visibility === 0)
+			spriteList[x % endX][y % endY] = game.add.sprite(x * tileWidth, y * tileHeight, 'empty');
+		else if (visibility === 1)
+			spriteList[x % endX][y % endY] = game.add.sprite(x * tileWidth, y * tileHeight, '1');
 		else if (visibility === 2)
-			tmp.tint = 0x008200;
+			spriteList[x % endX][y % endY] = game.add.sprite(x * tileWidth, y * tileHeight, '2');
 		else if (visibility === 3)
-			tmp.tint = 0xff0000;
+			spriteList[x % endX][y % endY] = game.add.sprite(x * tileWidth, y * tileHeight, '3');
 		else if (visibility === 4)
-			tmp.tint = 0x000084;
+			spriteList[x % endX][y % endY] = game.add.sprite(x * tileWidth, y * tileHeight, '4');
 		else if (visibility === 5)
-			tmp.tint = 0x942f2f;
+			spriteList[x % endX][y % endY] = game.add.sprite(x * tileWidth, y * tileHeight, '5');
 		else if (visibility === 6)
+		{
+			spriteList[x % endX][y % endY] = game.add.sprite(x * tileWidth, y * tileHeight, 'empty');
+			var tmp = game.add.text(x * tileWidth + 7, y * tileHeight + 5, visibility, { font: "25px Arial", fill: "#ffffff" });
 			tmp.tint = 0x3b9999;
+			var txt = {x: x, y: y, txt:tmp};
+			txts.push(txt);
+		}
 		else if (visibility === 7)
+		{
+			spriteList[x % endX][y % endY] = game.add.sprite(x * tileWidth, y * tileHeight, 'empty');
+			var tmp = game.add.text(x * tileWidth + 7, y * tileHeight + 5, visibility, { font: "25px Arial", fill: "#ffffff" });
 			tmp.tint = 0x000000;
-		var txt = {x: x, y: y, txt:tmp};
-		txts.push(txt);
+			var txt = {x: x, y: y, txt:tmp};
+			txts.push(txt);
+		}
 	}
 }
 
@@ -367,6 +357,7 @@ function render() {
 	for (var i = 0; i < logText.length; i++) {
 		game.debug.text(logText[i], 32, height - 85 + 16*i);
 	}
+	game.debug.text("fps:" + (game.time.fps || '--'), 2, 14, "#00ff00");
 }
 
 socket.on('load', loadFunct);
@@ -449,6 +440,7 @@ socket.on('askUsername', function()
 			errorMessageStr.nodeValue = "Username need to have at least 2 characters";
 			return;
 		}
+		actifUsername = nameInput.value;
 		socket.emit('username', {name:nameInput.value, pass:pass.value});
 	};
 	menuDiv.appendChild(loginDiv);
@@ -479,9 +471,30 @@ socket.on('askDisconnect', function()
 
 socket.on('updateScore', function(score)
 {
-	if(document.getElementById('Scoreboard') == undefined)
+	if(document.getElementById('scoreboard') == undefined)
 		return;
-	document.getElementById('Scoreboard').innerHTML = "<h5>Leaderboard</h5><br>" + score;
+	var arr = score.split("</pre>");
+	var found = -1;
+	for (var i = 0; i < arr.length; i++) {
+		found = arr[i].search(" " + actifUsername + ":");
+		if (found >= 0)
+		{
+			arr[i] = arr[i].replace(actifUsername, "<font color=\"#ffd700\">" + actifUsername);
+			arr[i] = arr[i].replace("<br>", "</font><br>");
+			break;
+		}
+	}
+	if (found >= 0)
+	{
+		score = arr.join("</pre>");
+	}
+	document.getElementById('scoreboard').innerHTML = "<p align=\"center\">Leaderboard</p><pre> Rank   Name            Score</pre>" + score;
+	socket.emit('askPersonalScore');
+});
+
+socket.on('returnPersonalScore', function(score)
+{
+	document.getElementById('scoreboard').innerHTML += score;
 });
 
 socket.on('moveTo', function(pos)

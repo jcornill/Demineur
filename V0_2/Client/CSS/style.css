@@ -1,5 +1,5 @@
 body {
-	margin: 0; 
+	margin: 0;
 	background: #333;
 }
 
@@ -79,4 +79,16 @@ body {
 
 #buttonPlay:hover{
 	background-color: #648D58;
+}
+
+#scoreboard{
+	pointer-events: none;
+	display: block;
+	width: 250px;
+	height: 250px;
+	top: 25px;
+	right: 25px;
+	position: absolute;
+	color: #ffffff;
+	background-color: rgba(150, 150, 150, 0.7);
 }
