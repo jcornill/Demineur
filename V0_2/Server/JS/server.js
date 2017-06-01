@@ -67,9 +67,9 @@ function createRegion(x, y)
 		}
 		regionData.push(tmp);
 	}
-	regions[x+":"+y] = {data:regionData};
+	regions[x+":"+y] = {data:regionData, lastUpdate:Date.now()};
 	console.log("Creating complete");
-	saveRegionBdd(x, y);
+	saveRegionBdd(x, y, false);
 }
 
 // Count the number of flag posed around a point
@@ -92,6 +92,12 @@ function getNbFlag(x, y)
 function processAction(x, y, button, socket)
 {
 	var info = getRegionData(x, y);
+	// Error in region return directly the error to the client and stop
+	if (info === -1)
+	{
+		socket.emit('returnInfo', {x:x, y:y, v:info});
+		return;
+	}
 	// player click on a empty case => do nothing
 	if (info === 0)
 		return;
@@ -192,7 +198,7 @@ function getRegionData(x, y)
 	var tRegion = regions[x2+":"+y2];
 	if (tRegion == undefined)
 	{
-		loadRegion(x2, y2);
+		loadRegionBdd(x2, y2);
 		return -1;
 	}
 	return tRegion.data[x][y];
@@ -237,33 +243,10 @@ function getEmptySpaceFromPoint(x, y)
 	return nbEmpty;
 }
 
-// Load the region file x/y
-function loadRegion(x, y)
+function unloadRegion(x, y)
 {
-	if (loader.includes(x+":"+y))
-		return;
-	console.log("Ask load region " + x + ":" + y);
-	var tmpData = [];
-	loader.push(x+":"+y);
-	fs.readFile('./Save/r-' + x + '-' + y + '.json', 'utf8', function (err,data)
-	{
-		console.log("Starting load region " + x + ":" + y);
-		if (err)
-		{
-			// If file not found error we create the region
-			if (err.errno === -2)
-			{
-				createRegion(x, y);
-				return;
-			}
-			return console.log(err);
-		}
-		var jsonData = JSON.parse(data);
-		tmpData = jsonData.data;
-		regions[x+":"+y] = {data:tmpData};
-		loader.splice(loader.indexOf(x+":"+y), 1);
-		console.log("Load end");
-	});
+	console.log("Unload region " + x + ":" + y);
+	saveRegionBdd(x, y, true);
 }
 
 function loadRegionBdd(x, y)
@@ -287,7 +270,8 @@ function loadRegionBdd(x, y)
 						tmpData[i][j] = rows[0].Region[j + i * regionSize];
 					}
 				}
-				regions[x+":"+y] = {data:tmpData};
+				regions[x+":"+y] = {data:tmpData, lastUpdate:Date.now()};
+				loader.splice(loader.indexOf(x+":"+y), 1);
 				console.log("bddLoad " + x + ":" + y + " done");
 			}
 			else {
@@ -315,7 +299,7 @@ function getBlobFromRegion(x, y)
 	return buf;
 }
 
-function saveRegionBdd(x, y)
+function saveRegionBdd(x, y, unload)
 {
 	console.log("Ask save regionBdd " + x + ":" + y)
 	connection.query('SELECT x, y from Map', function(err, rows, fields)
@@ -333,6 +317,12 @@ function saveRegionBdd(x, y)
 						if (!err)
 						{
 							console.log("Region " + x + ":" + y + " updated");
+							if (unload === true)
+							{
+								regions.splice(regions.indexOf(x+":"+y), 1);
+								regions[x+":"+y] = undefined;
+								console.log("Region " + x + ":" + y + " destroyed");
+							}
 						}
 						else
 							console.log('Error while performing Query: ' + queryStr);
@@ -356,20 +346,6 @@ function saveRegionBdd(x, y)
 		else
 			console.log('Error while performing Query.');
 	});
-}
-
-function saveRegion(x, y)
-{
-	console.log("Ask save region " + x + ":" + y)
-	fs.writeFile(
-    './Save/r-' + x + '-' + y + '.json',
-    JSON.stringify(regions[x+":"+y]),
-    function (err) {
-        if (err) {
-            console.error('Crap happens');
-        }
-		console.log("save end");
-    });
 }
 
 // Load in the players array the top 5 on leaderboard
@@ -570,6 +546,10 @@ io.sockets.on('connection', function (socket) {
 		players[socket.username].pos.x = action.x;
 		players[socket.username].pos.y = action.y;
 		processAction(action.x, action.y, action.button, socket);
+		x2 = Math.floor(action.x / regionSize);
+		y2 = Math.floor(action.y / regionSize);
+		if (regions[x2+":"+y2] != undefined)
+			regions[x2+":"+y2].lastUpdate = Date.now();
 	});
 
 	socket.on('askInfo', function(pos)
@@ -591,7 +571,7 @@ io.sockets.on('connection', function (socket) {
 	{
 		var returnValue = "";
 		var pl = players[socket.username];
-		if (pl.ranks <= 5)
+		if (pl == undefined || pl.ranks <= 5)
 			return;
 		if (pl.name.length >= 16)
 		{
@@ -606,6 +586,19 @@ io.sockets.on('connection', function (socket) {
 
 setInterval(function() {io.emit("updateScore", getLeaderboardText());}, 3000);
 
+setInterval(function(){
+	for (var v in regions) {
+		if (regions.hasOwnProperty(v) && regions[v] != undefined) {
+			// If last update is > 1 min
+			if ((Date.now() - regions[v].lastUpdate) > 10000)
+			{
+				unloadRegion(v.split(":")[0], v.split(":")[1]);
+			}
+		}
+	}
+}, 5000);
+
+
 rl.on('line', function(input) {
 	if (input === "Stop")
 	{
@@ -617,8 +610,8 @@ rl.on('line', function(input) {
 	{
 		console.log("saveall");
 		for (var v in regions) {
-			if (regions.hasOwnProperty(v)) {
-				saveRegionBdd(v.split(":")[0], v.split(":")[1]);
+			if (regions.hasOwnProperty(v) && regions[v] != undefined) {
+				saveRegionBdd(v.split(":")[0], v.split(":")[1], false);
 			}
 		};
 		io.emit('askDisconnect');
