@@ -42,13 +42,6 @@ var length = 1000;
 // Array contains players already playing
 var players = [];
 
-// Laod all the spawning regions
-for (var i = 0; i < 4; i++) {
-	for (var j = 0; j < 4; j++) {
-		loadRegionBdd(i,j);
-	}
-}
-
 // var a = regions["0:0"].map(function (x) {
 //     x = x.toString(16); // to hex
 //     return x
@@ -95,7 +88,7 @@ function processAction(x, y, button, socket)
 	// Error in region return directly the error to the client and stop
 	if (info === -1)
 	{
-		socket.emit('returnInfo', {x:x, y:y, v:info});
+		setTimeout(function () {processAction(x, y, button, socket);}, 100);
 		return;
 	}
 	// player click on a empty case => do nothing
@@ -155,6 +148,9 @@ function processAction(x, y, button, socket)
 	{
 		socket.emit('loose');
 		socket.death = true;
+		players[socket.username].score /= 2;
+		players[socket.username].respawn = 1;
+		savePlayer(socket);
 		return;
 	}
 	// if we got there the player click on a undiscover case
@@ -417,6 +413,25 @@ function convertInfoForClient(info)
 	return info;
 }
 
+//Save the player in the database
+function savePlayer(socket)
+{
+	if (socket.username != undefined)
+	{
+		var queryStr = 'UPDATE ' + table + " SET Score = '" + players[socket.username].score + "', camX = '"+ players[socket.username].pos.x +"', camY = '"+ players[socket.username].pos.y +"', respawn = '" + players[socket.username].respawn + "' WHERE Name = '" + socket.username + "'";
+		console.log("Saving player: " + queryStr);
+		connection.query(queryStr, function(err, rows, fields)
+		{
+			if (!err)
+			{
+				console.log("Database updated for " + socket.username);
+			}
+			else
+				console.log('Error while performing Query: ' + queryStr);
+		});
+	}
+}
+
 // Fucntion to escape char (suppress html injection)
 String.prototype.escape = function() {
     var tagsToReplace = {
@@ -449,7 +464,7 @@ io.sockets.on('connection', function (socket) {
 						if (rows[i].Password === pass)
 						{
 							found = true;
-							players[name] = {score:rows[i].Score, pos:{x:rows[i].camX, y:rows[i].camY}};
+							players[name] = {score:rows[i].Score, pos:{x:rows[i].camX, y:rows[i].camY}, respawn: rows[i].respawn};
 							socket.username = name;
 							socket.emit('printText', "You join the game.");
 							socket.broadcast.emit('printText', name + " has join the game.");
@@ -484,56 +499,48 @@ io.sockets.on('connection', function (socket) {
 		});
 	});
 
-	var test = function()
+	var testSpawn = function()
 	{
-		if (players[socket.username].pos == undefined)
+		if (players[socket.username].pos == undefined || players[socket.username].respawn === 1)
 		{
-			while(true)
-			{
-				var r1 = Math.floor(Math.random() * (length - 200));
-				var r2 = Math.floor(Math.random() * (length - 200));
-				r1 += 100;
-				r2 += 100;
+			var r1 = Math.floor(Math.random() * (length - 200));
+			var r2 = Math.floor(Math.random() * (length - 200));
+			r1 += 100;
+			r2 += 100;
 
-				var info = getRegionData(r1, r2);
-				if (info === 9 && getNbBomb(r1, r2) === 0)
+			var info = getRegionData(r1, r2);
+			if (info === 9 && getNbBomb(r1, r2) === 0)
+			{
+				var emp = getEmptySpaceFromPoint(r1, r2);
+					counter = [];
+				if (emp < 10 || emp > 15)
 				{
-					var emp = getEmptySpaceFromPoint(r1, r2);
-						counter = [];
-					if (emp < 10 || emp > 15)
-						continue;
-					processAction(r1, r2, 1, socket);
-					var spawnPoint = {x: r1, y:r2};
-					console.log("Found spawnPoint at " + r1 + ":" + r2);
-					players[socket.username].pos = spawnPoint;
-					socket.emit('moveTo', spawnPoint);
-					break;
+					setTimeout(testSpawn, 100);
+					return;
 				}
+				processAction(r1, r2, 1, socket);
+				var spawnPoint = {x: r1, y:r2};
+				console.log("Found spawnPoint at " + r1 + ":" + r2);
+				players[socket.username].respawn = 0;
+				players[socket.username].pos = spawnPoint;
+				socket.emit('moveTo', spawnPoint);
 			}
+			setTimeout(testSpawn, 100);
 		}
 		else {
 			socket.emit('moveTo', players[socket.username].pos);
 		}
 	}
 
-	socket.on('finishLoad', test);
+	socket.on('askSpawn', testSpawn);
 
 	socket.on('disconnect', function()
 	{
 		if (socket.username != undefined)
 		{
 			socket.broadcast.emit('printText', socket.username + " has leave the game.");
-			var queryStr = 'UPDATE ' + table + " SET Score = '" + players[socket.username].score + "', camX = '"+ players[socket.username].pos.x +"', camY = '"+ players[socket.username].pos.y +"' WHERE Name = '" + socket.username + "'";
+			savePlayer(socket);
 			players.splice(players.indexOf(socket.name), 1);
-			connection.query(queryStr, function(err, rows, fields)
-			{
-				if (!err)
-				{
-					console.log("Database updated for " + socket.username);
-				}
-				else
-					console.log('Error while performing Query: ' + queryStr);
-			});
 		}
 	});
 

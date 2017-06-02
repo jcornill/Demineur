@@ -114,8 +114,7 @@
 			console.log(pX + ":" + pY);
 			socket.emit('askTeleport', {x: pX, y:pY});
 		};
-		socket.emit('finishLoad');
-
+		socket.emit('askSpawn');
 	}
 
 	var b = 1;
@@ -458,8 +457,7 @@ socket.on('returnInfo', function(value)
 });
 
 socket.on('printText', function(message)
-{
-	logText.push(message);
+{	logText.push(message);
 });
 
 socket.on('askDisconnect', function()
