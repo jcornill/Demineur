@@ -73,6 +73,12 @@
 		ui.style.position = "absolute";
 		document.body.appendChild(ui);
 
+		var connecting = document.createElement('div');
+		connecting.id = "connectingDiv";
+		connecting.oncontextmenu = function(e) {e.preventDefault();}
+		connecting.innerHTML = '<h5 align="center">Connecting to the server...</h5>';
+		document.getElementById('UI').appendChild(connecting);
+
 		var sb = document.createElement('div');
 		sb.id = "scoreboard";
 		sb.oncontextmenu = function(e) {e.preventDefault();}
@@ -114,6 +120,7 @@
 			console.log(pX + ":" + pY);
 			socket.emit('askTeleport', {x: pX, y:pY});
 		};
+
 		socket.emit('askSpawn');
 	}
 
@@ -360,6 +367,10 @@ function render() {
 }
 
 socket.on('load', loadFunct);
+socket.on('finishSpawn', function ()
+{
+	document.getElementById('UI').removeChild(document.getElementById("connectingDiv"));
+});
 socket.on('processAction', function(action)
 {
 	if (game)

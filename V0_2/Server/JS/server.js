@@ -524,11 +524,14 @@ io.sockets.on('connection', function (socket) {
 				players[socket.username].respawn = 0;
 				players[socket.username].pos = spawnPoint;
 				socket.emit('moveTo', spawnPoint);
+				socket.emit('finishSpawn');
+				return;
 			}
-			setTimeout(testSpawn, 100);
+			setTimeout(testSpawn, 10);
 		}
 		else {
 			socket.emit('moveTo', players[socket.username].pos);
+			socket.emit('finishSpawn');
 		}
 	}
 

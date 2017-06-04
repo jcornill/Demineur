@@ -81,6 +81,16 @@ body {
 	background-color: #648D58;
 }
 
+#connectingDiv{
+	position: absolute;
+	top: 30%;
+	left: 35%;
+	width: 400px;
+	height: 100px;
+	background-color: #282C34;
+	color: #ffffff;
+}
+
 #scoreboard{
 	pointer-events: none;
 	display: block;
