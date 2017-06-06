@@ -468,7 +468,7 @@ io.sockets.on('connection', function (socket) {
 							socket.username = name;
 							socket.emit('printText', "You join the game.");
 							socket.broadcast.emit('printText', name + " has join the game.");
-							socket.emit('load', { pLength: length});
+							socket.emit('load');
 							break;
 						}
 						else {
@@ -487,7 +487,7 @@ io.sockets.on('connection', function (socket) {
 							socket.username = name;
 							socket.emit('printText', "You join the game.");
 							socket.broadcast.emit('printText', name + " has join the game.");
-							socket.emit('load', { pLength: length});
+							socket.emit('load');
 						}
 						else
 							console.log('Error while performing Query.');

@@ -7,7 +7,6 @@
 
 	var game;
 	var isClick = false;
-	var length;
 
 	var width = window.innerWidth; //1142;
 	var height = window.innerHeight; //648;
@@ -23,17 +22,22 @@
 	var indexY = 0;
 
 	var disconnect = false;
+	var started = false;
 
 	var actifUsername = "";
+	var menuDiv;
 
-	var loadFunct = function(obj)
+	var loadFunct = function()
 	{
-		document.body.removeChild(menuDiv);
-		length = obj.pLength;
+		if (menuDiv != undefined)
+		{
+			document.body.removeChild(menuDiv);
+			menuDiv = undefined;
+		}
 		console.log("Load start");
-		game = new Phaser.Game(width, height, Phaser.CANVAS, "", { preload: preload, create: create, update: update, render: render});
+		game = new Phaser.Game(1920, 1080, Phaser.CANVAS, "", { preload: preload, create: create, update: update, render: render});
 		function preload() {
-		    game.load.image('cube', 'Client/Assets/Cube.png');
+		  game.load.image('cube', 'Client/Assets/Cube.png');
 			game.load.image('cubePress', 'Client/Assets/CubePress.png');
 			game.load.image('empty', 'Client/Assets/Empty.png');
 			game.load.image('flag', 'Client/Assets/Flag.png');
@@ -47,7 +51,7 @@
 			game.stage.backgroundColor = '#808080';
 			game.canvas.id = "Game";
 			game.canvas.style.left = "0px";
-	        game.canvas.style.top = "0px";
+	    game.canvas.style.top = "0px";
 			for (var i = 0; i < endX; i++) {
 				var tmp = [];
 				spriteList.push(tmp);
@@ -58,26 +62,22 @@
 
 	function create() {
 		game.canvas.oncontextmenu = function (e) { e.preventDefault(); }
-		game.world.setBounds(0, 0, (10000 - 1) * tileWidth, (10000 - 1) * tileHeight);
+		game.world.setBounds(0, 0, (10025 + 1) * tileWidth, (10025 + 1) * tileHeight);
 		cursors = game.input.keyboard.createCursorKeys();
 
 		var ui = document.createElement('div');
 		ui.id = "UI";
 		ui.oncontextmenu = function(e) {e.preventDefault();}
-		ui.style.pointerEvents = "none";
-		ui.style.width  = game.canvas.width + "px";
-		ui.style.height = game.canvas.height + "px";
-		ui.style.display = "block";
-		ui.style.left = "0px";
-        ui.style.top = "0px";
-		ui.style.position = "absolute";
 		document.body.appendChild(ui);
 
-		var connecting = document.createElement('div');
-		connecting.id = "connectingDiv";
-		connecting.oncontextmenu = function(e) {e.preventDefault();}
-		connecting.innerHTML = '<h5 align="center">Connecting to the server...</h5>';
-		document.getElementById('UI').appendChild(connecting);
+		if (started == false)
+		{
+			var connecting = document.createElement('div');
+			connecting.id = "connectingDiv";
+			connecting.oncontextmenu = function(e) {e.preventDefault();}
+			connecting.innerHTML = '<h5 align="center">Connecting to the server...</h5>';
+			document.getElementById('UI').appendChild(connecting);
+		}
 
 		var sb = document.createElement('div');
 		sb.id = "scoreboard";
@@ -87,20 +87,22 @@
 
 		var iX = document.createElement('input');
 		iX.type = "text";
+		iX.pattern = "[0-9]*";
 		iX.style.pointerEvents = "auto";
 		iX.style.width = "75px";
 		iX.style.height = "30px";
 		iX.style.right = "145px";
-        iX.style.bottom = "10px";
+  	iX.style.bottom = "10px";
 		iX.style.position = "absolute";
 		document.getElementById('UI').appendChild(iX);
 		var iY = document.createElement('input');
 		iY.type = "text";
+		iX.pattern = "[0-9]*";
 		iY.style.pointerEvents = "auto";
 		iY.style.width = "75px";
 		iY.style.height = "30px";
 		iY.style.right = "60px";
-        iY.style.bottom = "10px";
+    iY.style.bottom = "10px";
 		iY.style.position = "absolute";
 		document.getElementById('UI').appendChild(iY);
 		var button = document.createElement('input');
@@ -115,20 +117,18 @@
 		document.getElementById('UI').appendChild(button);
 		button.onclick = function()
 		{
-			var pX = Math.floor(iX.value / tileWidth);
-			var pY = Math.floor(iY.value / tileHeight);
-			console.log(pX + ":" + pY);
-			socket.emit('askTeleport', {x: pX, y:pY});
+			socket.emit('askTeleport', {x: iX.value, y:iY.value});
 		};
-
-		socket.emit('askSpawn');
+		if (started === false)
+			socket.emit('askSpawn');
+		started = true;
 	}
 
 	var b = 1;
 	var spr = undefined;
 
 	function update() {
-		if (isLost || disconnect)
+		if (isLost || disconnect || game.input == null)
 			return;
 		moveCamera();
 		var distanceMouse = 0;
@@ -174,6 +174,32 @@
 		}
 	}
 
+setInterval(testResize, 1000);
+
+function testResize()
+{
+	if (height != window.innerHeight || width != window.innerWidth)
+	{
+		console.log("Update Cam");
+		width = window.innerWidth;
+		height = window.innerHeight;
+		endX = Math.floor(width / tileWidth) + 2;
+		endY = Math.floor(height / tileHeight) + 2;
+		var test = {x:Math.floor(game.camera.x / tileWidth) + Math.floor(width / tileWidth / 2), y:Math.floor(game.camera.y / tileHeight) + Math.floor(height / tileHeight / 2)};
+		console.log(test.x, test.y);
+		for (var i = 0; i < spriteList.length; i++) {
+			for (var j = 0; j < spriteList[i].length; j++) {
+				spriteList[i][j].destroy();
+			}
+		}
+		spriteList = [];
+		for (var i = 0; i < endX; i++) {
+			var tmp = [];
+			spriteList.push(tmp);
+		}
+		moveCam(test);
+	}
+}
 
 function moveCameraRight(speed)
 {
@@ -304,6 +330,8 @@ function process(x, y, visibility)
 {
 	if (x < startX + indexX || x > endX + indexX - 1 || y < startY + indexY || y > endY + indexY - 1)
 		return;
+	if (spriteList[x % endX] == undefined)
+		return;
 	if (visibility < 0) // If visibility is negative => error occurs we re ask the info
 		socket.emit('askInfo', {x: x, y: y})
 	if (spriteList[x % endX][y % endY] != undefined)
@@ -364,6 +392,8 @@ function render() {
 		game.debug.text(logText[i], 32, height - 85 + 16*i);
 	}
 	game.debug.text("fps:" + (game.time.fps || '--'), 2, 14, "#00ff00");
+	game.debug.text('window.innerWidth: ' + window.innerWidth, 64, 20);
+	game.debug.text('window.innerWidth: ' + window.innerHeight, 64, 52);
 }
 
 socket.on('load', loadFunct);
@@ -389,7 +419,7 @@ socket.on('loose', function() {
 
 socket.on('askUsername', function()
 {
-	var menuDiv = document.createElement("div");
+	menuDiv = document.createElement("div");
 	menuDiv.id = "menuDiv";
 
 	var loginDiv = document.createElement("div");
@@ -506,9 +536,19 @@ socket.on('returnPersonalScore', function(score)
 	document.getElementById('scoreboard').innerHTML += score;
 });
 
-socket.on('moveTo', function(pos)
+var moveCam = function(pos)
 {
-	if (pos.x - Math.floor((width / tileWidth + 2) / 2) < 0 || pos.y - Math.floor((height / tileHeight + 2) / 2) < 0 || pos.x == undefined || pos.y == undefined)
+
+	if (pos.x * tileWidth < width / 2)
+		pos.x = Math.floor((width / 2) / tileWidth) + 1;
+	if (pos.y * tileHeight < height / 2)
+		pos.y = Math.floor((height / 2) / tileHeight) + 1;
+	if (pos.x + Math.floor((width / 2) / tileWidth) - 1 > 10000)
+		pos.x = 10000 - Math.floor((width / 2) / tileWidth) - 1;
+	if (pos.y + Math.floor((height / 2) / tileHeight) - 1 > 10000)
+		pos.y = 10000 - Math.floor((height / 2) / tileHeight) - 1;
+
+	if (pos.x == undefined || pos.y == undefined)
 	{
 		alert("Error");
 		return;
@@ -518,18 +558,16 @@ socket.on('moveTo', function(pos)
 
 	console.log("movingCam to " + (pos.x * tileWidth - width / 2) + ":" + (pos.y * tileHeight - height / 2));
 
-	// var startX = pos.x - (Math.floor(width / tileWidth) + 2) / 2;
-	// var startY = pos.y - (Math.floor(height / tileHeight) + 2) / 2;
-	// var endX = pos.x + (Math.floor(width / tileWidth) + 2) / 2;
-	// var endY = pos.y + (Math.floor(height / tileHeight) + 2) / 2;
 	indexX = pos.x - Math.floor((width / tileWidth + 2) / 2);
 	indexY = pos.y - Math.floor((height / tileHeight + 2) / 2);
 
-	console.log("Index " + indexX + ":" + indexY);
+	console.log("Index " + indexX + ":" + indexY + "   " + startX + ":" + startY + "  " + endX + ":" + endY);
 
 	for (var i = startX + indexX; i < endX + indexX; i++) {
 		for (var j = startY + indexY; j < endY + indexY; j++) {
 			socket.emit('askInfo', {x: i, y: j})
 		}
 	}
-});
+}
+
+socket.on('moveTo', moveCam);

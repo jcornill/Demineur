@@ -91,6 +91,16 @@ body {
 	color: #ffffff;
 }
 
+#UI{
+	pointer-events: none;
+	display: block;
+	width: 100%;
+	height: 100%;
+	left: 0px;
+	top: 0px;
+	position: absolute;
+}
+
 #scoreboard{
 	pointer-events: none;
 	display: block;
