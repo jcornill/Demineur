@@ -233,7 +233,11 @@ function getEmptySpaceFromPoint(x, y)
 	for (var i = x-1; i <= x+1; i++) {
 		for (var j = y-1; j <= y+1; j++) {
 			if (getNbBomb(i,j) === 0)
+      {
 				nbEmpty += getEmptySpaceFromPoint(i, j);
+        if (nbEmpty > 15)
+          return nbEmpty;
+      }
 		}
 	}
 	return nbEmpty;
@@ -501,6 +505,8 @@ io.sockets.on('connection', function (socket) {
 
 	var testSpawn = function()
 	{
+    if (socket.death == true)
+      socket.death = false;
 		if (players[socket.username].pos == undefined || players[socket.username].respawn === 1)
 		{
 			var r1 = Math.floor(Math.random() * (length - 200));
