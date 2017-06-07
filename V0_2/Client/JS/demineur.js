@@ -22,18 +22,13 @@
 	var indexY = 0;
 
 	var disconnect = false;
-	var started = false;
 
 	var actifUsername = "";
-	var menuDiv;
+	var moduleTpDiv;
 
 	var loadFunct = function()
 	{
-		if (menuDiv != undefined)
-		{
-			document.body.removeChild(menuDiv);
-			menuDiv = undefined;
-		}
+		document.body.removeChild(menuDiv);
 		console.log("Load start");
 		game = new Phaser.Game(1920, 1080, Phaser.CANVAS, "", { preload: preload, create: create, update: update, render: render});
 		function preload() {
@@ -70,14 +65,11 @@
 		ui.oncontextmenu = function(e) {e.preventDefault();}
 		document.body.appendChild(ui);
 
-		if (started == false)
-		{
-			var connecting = document.createElement('div');
-			connecting.id = "connectingDiv";
-			connecting.oncontextmenu = function(e) {e.preventDefault();}
-			connecting.innerHTML = '<h5 align="center">Connecting to the server...</h5>';
-			document.getElementById('UI').appendChild(connecting);
-		}
+		var connecting = document.createElement('div');
+		connecting.id = "connectingDiv";
+		connecting.oncontextmenu = function(e) {e.preventDefault();}
+		connecting.innerHTML = '<h5 align="center">Connecting to the server...</h5>';
+		document.getElementById('UI').appendChild(connecting);
 
 		var sb = document.createElement('div');
 		sb.id = "scoreboard";
@@ -85,51 +77,58 @@
 		sb.innerHTML = '<h5 align="center">Leaderboard</h5>';
 		document.getElementById('UI').appendChild(sb);
 
+		moduleTpDiv = document.createElement('div');
+		moduleTpDiv.id = "tpModuleDiv";
+		moduleTpDiv.style.visibility = "hidden";
+		moduleTpDiv.innerHTML = "<p style=\"position: absolute; top: -14px; width:80%; text-align: center; font-size: 80%;\">Teleport to coords:</p>";
+		moduleTpDiv.oncontextmenu = function(e) {e.preventDefault();}
+		document.getElementById('UI').appendChild(moduleTpDiv);
+
 		var iX = document.createElement('input');
 		iX.type = "text";
 		iX.pattern = "[0-9]*";
-		iX.style.pointerEvents = "auto";
-		iX.style.width = "75px";
-		iX.style.height = "30px";
-		iX.style.right = "145px";
-  	iX.style.bottom = "10px";
-		iX.style.position = "absolute";
-		document.getElementById('UI').appendChild(iX);
+		iX.id = "tpModuleX";
+		document.getElementById('tpModuleDiv').appendChild(iX);
+
 		var iY = document.createElement('input');
 		iY.type = "text";
 		iX.pattern = "[0-9]*";
-		iY.style.pointerEvents = "auto";
-		iY.style.width = "75px";
-		iY.style.height = "30px";
-		iY.style.right = "60px";
-    iY.style.bottom = "10px";
-		iY.style.position = "absolute";
-		document.getElementById('UI').appendChild(iY);
+		iY.id = "tpModuleY";
+		document.getElementById('tpModuleDiv').appendChild(iY);
+
 		var button = document.createElement('input');
 		button.type = "button";
 		button.value = "Go";
-		button.style.pointerEvents = "auto";
-		button.style.width = "50px";
-		button.style.height = "50px";
-		button.style.right = "5px";
-        button.style.bottom = "5px";
-		button.style.position = "absolute";
-		document.getElementById('UI').appendChild(button);
+		button.id = "tpModuleGo";
+		document.getElementById('tpModuleDiv').appendChild(button);
 		button.onclick = function()
 		{
 			socket.emit('askTeleport', {x: iX.value, y:iY.value});
 		};
-		if (started === false)
-			socket.emit('askSpawn');
-		started = true;
+		socket.emit('askSpawn');
 	}
 
 	var b = 1;
 	var spr = undefined;
+	var keyDown = false;
 
 	function update() {
 		if (isLost || disconnect || game.input == null)
 			return;
+		if (game.input.keyboard.isDown(Phaser.Keyboard.G) && tpModuleDiv.style.visibility === "hidden" && keyDown === false)
+		{
+			tpModuleDiv.style.visibility = "visible";
+			keyDown = true;
+		}
+		else if (game.input.keyboard.isDown(Phaser.Keyboard.G) && keyDown === false)
+		{
+			tpModuleDiv.style.visibility = "hidden";
+			keyDown = true;
+		}
+		if(game.input.keyboard.isDown(Phaser.Keyboard.G) === false)
+		{
+			keyDown = false;
+		}
 		moveCamera();
 		var distanceMouse = 0;
 		var fX = 0;
