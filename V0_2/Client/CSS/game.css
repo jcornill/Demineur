@@ -61,3 +61,47 @@ body {
 	right: 1px;
 	position: absolute;
 }
+
+#deathDiv{
+	pointer-events: none;
+	position: absolute;
+	top: 30%;
+	left: 35%;
+	width: 30%;
+	height: 150px;
+	background-color: #282C34;
+	color: #ffffff;
+}
+
+#paraLoose{
+	position: absolute;
+	top: 30px;
+	left: 20%;
+	text-align: center;
+}
+
+#restartLoose{
+	pointer-events: auto;
+	width: 30%;
+	height: 30px;
+	bottom: 20px;
+	right: 35%;
+	position: absolute;
+	color: #ffffff;
+	font-size: 17px;
+	background-color: #267F00;
+	border: none;
+	outline: none;
+}
+
+#restartLoose:hover{
+	background-color: #648D58;
+}
+
+#restartLoading{
+		position: absolute;
+		visibility: hidden;
+		bottom: -13px;
+		right: 40%;
+		font-size: 15px;
+}

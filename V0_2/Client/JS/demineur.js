@@ -24,7 +24,6 @@
 	var disconnect = false;
 
 	var actifUsername = "";
-	var moduleTpDiv;
 
 	var loadFunct = function()
 	{
@@ -77,7 +76,7 @@
 		sb.innerHTML = '<h5 align="center">Leaderboard</h5>';
 		document.getElementById('UI').appendChild(sb);
 
-		moduleTpDiv = document.createElement('div');
+		var moduleTpDiv = document.createElement('div');
 		moduleTpDiv.id = "tpModuleDiv";
 		moduleTpDiv.style.visibility = "hidden";
 		moduleTpDiv.innerHTML = "<p style=\"position: absolute; top: -14px; width:80%; text-align: center; font-size: 80%;\">Teleport to coords:</p>";
@@ -105,6 +104,28 @@
 		{
 			socket.emit('askTeleport', {x: iX.value, y:iY.value});
 		};
+
+		var deathDiv = document.createElement('div');
+		deathDiv.id = "deathDiv";
+		deathDiv.oncontextmenu = function(e) {e.preventDefault();}
+		deathDiv.innerHTML = '<h5 align="center" style=\"font-size: 20px; position: absolute; top: -15px; left:45%\">Loose</h5><br><p id = \"paraLoose\">You have clicked on a bomb.<br> You lost half of your score and need to restart.</p><p id = \"restartLoading\">Loading ...</p>';
+		deathDiv.style.visibility = "hidden";
+		document.getElementById('UI').appendChild(deathDiv);
+
+		var restartButton = document.createElement('input');
+		restartButton.type = "button";
+		restartButton.value = "Restart";
+		restartButton.id = "restartLoose";
+		document.getElementById('deathDiv').appendChild(restartButton);
+		restartButton.onclick = function()
+		{
+			if (isLost === true)
+			{
+				document.getElementById('restartLoading').style.visibility = "visible";
+				socket.emit('askSpawn');
+			}
+		};
+
 		socket.emit('askSpawn');
 	}
 
@@ -115,6 +136,7 @@
 	function update() {
 		if (isLost || disconnect || game.input == null)
 			return;
+		var tpModuleDiv = document.getElementById('tpModuleDiv');
 		if (game.input.keyboard.isDown(Phaser.Keyboard.G) && tpModuleDiv.style.visibility === "hidden" && keyDown === false)
 		{
 			tpModuleDiv.style.visibility = "visible";
@@ -398,7 +420,11 @@ function render() {
 socket.on('load', loadFunct);
 socket.on('finishSpawn', function ()
 {
-	document.getElementById('UI').removeChild(document.getElementById("connectingDiv"));
+	if (document.getElementById("connectingDiv") != null)
+		document.getElementById('UI').removeChild(document.getElementById("connectingDiv"));
+	document.getElementById("deathDiv").style.visibility = "hidden";
+	document.getElementById('restartLoading').style.visibility = "hidden";
+	isLost = false;
 });
 socket.on('processAction', function(action)
 {
@@ -412,7 +438,8 @@ socket.on('loose', function() {
 	pX = Math.floor(pX / tileWidth);
 	pY = Math.floor(pY / tileHeight);
 	game.add.sprite(pX * tileWidth, pY * tileHeight, 'bomb');
-	alert('Perdu !');
+	document.getElementById("deathDiv").style.visibility = "visible";
+	document.getElementById('restartLoading').style.visibility = "hidden";
 	isLost = true;
 });
 
