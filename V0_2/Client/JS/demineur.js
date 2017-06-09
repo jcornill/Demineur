@@ -417,6 +417,32 @@ function render() {
 	game.debug.text('window.innerWidth: ' + window.innerHeight, 64, 52);
 }
 
+var login = function()
+{
+	var nameInput = document.getElementById('nameInput');
+	var pass = document.getElementById('passInput');
+	if (nameInput.value.length > 32)
+	{
+		errorMessageStr.nodeValue = "Username need to be less than 32 characters";
+		return;
+	}
+	else if (nameInput.value.length < 3)
+	{
+		errorMessageStr.nodeValue = "Username need to have at least 2 characters";
+		return;
+	}
+	actifUsername = nameInput.value;
+	socket.emit('username', {name:nameInput.value, pass:pass.value});
+}
+
+function checkEnter(e)
+{
+	if (e.keyCode == 13) {
+				login();
+        return false;
+    }
+}
+
 socket.on('load', loadFunct);
 socket.on('finishSpawn', function ()
 {
@@ -472,6 +498,7 @@ socket.on('askUsername', function()
 	var nameInput = document.createElement('input');
 	nameInput.type = "text";
 	nameInput.id = "nameInput";
+	nameInput.onkeypress = checkEnter;
 
 	loginDiv.appendChild(nameInput);
 
@@ -484,6 +511,7 @@ socket.on('askUsername', function()
 	var pass = document.createElement('input');
 	pass.type = "password";
 	pass.id = "passInput";
+	pass.onkeypress = checkEnter;
 	loginDiv.appendChild(pass);
 
 	var varvar = document.createTextNode("  ");
@@ -494,21 +522,7 @@ socket.on('askUsername', function()
 	button.id = "buttonPlay";
 	button.value = "Play";
 	loginDiv.appendChild(button);
-	button.onclick = function()
-	{
-		if (nameInput.value.length > 32)
-		{
-			errorMessageStr.nodeValue = "Username need to be less than 32 characters";
-			return;
-		}
-		else if (nameInput.value.length < 3)
-		{
-			errorMessageStr.nodeValue = "Username need to have at least 2 characters";
-			return;
-		}
-		actifUsername = nameInput.value;
-		socket.emit('username', {name:nameInput.value, pass:pass.value});
-	};
+	button.onclick = login;
 	menuDiv.appendChild(loginDiv);
 	document.body.appendChild(menuDiv);
 });
