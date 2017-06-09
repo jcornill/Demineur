@@ -565,6 +565,12 @@ socket.on('returnPersonalScore', function(score)
 var moveCam = function(pos)
 {
 
+	if (pos.x == undefined || pos.y == undefined || Number.isInteger(pos.x) == false || Number.isInteger(pos.y) == false)
+	{
+		alert("Error");
+		return;
+	}
+
 	if (pos.x * tileWidth < width / 2)
 		pos.x = Math.floor((width / 2) / tileWidth) + 1;
 	if (pos.y * tileHeight < height / 2)
@@ -574,11 +580,6 @@ var moveCam = function(pos)
 	if (pos.y + Math.floor((height / 2) / tileHeight) - 1 > 10000)
 		pos.y = 10000 - Math.floor((height / 2) / tileHeight) - 1;
 
-	if (pos.x == undefined || pos.y == undefined)
-	{
-		alert("Error");
-		return;
-	}
 	game.camera.x = pos.x * tileWidth - width / 2;
 	game.camera.y = pos.y * tileHeight - height / 2;
 
