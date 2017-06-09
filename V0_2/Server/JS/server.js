@@ -171,6 +171,7 @@ function processAction(x, y, button, socket)
 		socket.emit('loose');
 		socket.death = true;
 		players[socket.username].score /= 2;
+    players[socket.username].score = Math.floor(players[socket.username].score);
 		players[socket.username].respawn = 1;
 		savePlayer(socket);
 		return;
