@@ -150,14 +150,16 @@ function processAction(x, y, button, socket)
 		setRegionData(x,y,info);
 		// If place flag on bomb
 		if (info === 11){
-			players[socket.username].score += 10;
+			addScoreToPlayer(socket.username, 10);
 		}
 		else if (info === 10) {
 			// Player remove a placed flag where is a bomb
-			players[socket.username].score -= 10;
+			addScoreToPlayer(socket.username, -10);
 		}
 		else if (info === 12){
-			//TODO: Player place flag where is no bomb, What we do
+			players[socket.username].mult = 1;
+      socket.emit('printText', "You place a flag where is no bomb you lost your multiplicator");
+      processAction(x, y, 1, socket);
 		}
 		// Send the acion to all players
 		io.emit('processAction', {x:x, y:y, visibility:convertInfoForClient(info) });
@@ -173,6 +175,7 @@ function processAction(x, y, button, socket)
 		socket.death = true;
 		players[socket.username].score /= 2;
     players[socket.username].score = Math.floor(players[socket.username].score);
+    players[socket.username].mult = 1;
 		players[socket.username].respawn = 1;
 		savePlayer(socket);
 		return;
@@ -193,7 +196,7 @@ function processAction(x, y, button, socket)
 			}
 		}
 	}
-	players[socket.username].score += 1;
+	addScoreToPlayer(socket.username, 1);
 	io.emit('processAction', {x:x, y:y, visibility:convertInfoForClient(info) });
 }
 
@@ -381,14 +384,14 @@ function saveRegionBdd(x, y, unload)
 // Load in the players array the top 5 on leaderboard
 function loadLeaderboardLeader()
 {
-	connection.query("SELECT Name, Score from " + table + " ORDER BY Score DESC LIMIT 5", function(err, rows, fields)
+	connection.query("SELECT Name, Score, Mult from " + table + " ORDER BY Score DESC LIMIT 5", function(err, rows, fields)
 	{
 		if (!err)
 		{
 			for (var i = 0; i < rows.length; i++) {
 				if (players[rows[i].Name] == undefined)
 				{
-					players[rows[i].Name] = {score: rows[i].Score};
+					players[rows[i].Name] = {score: rows[i].Score, mult: rows[i].Mult};
 				}
 			}
 		}
@@ -425,14 +428,29 @@ function getLeaderboardText()
 	for (var i = 0; i < sortedPlayer.length; i++) {
 		if (i === 5)
 			break;
-		if (sortedPlayer[i].name.length >= 16)
+		if (sortedPlayer[i].name.length >= 12)
 		{
-			sortedPlayer[i].name = sortedPlayer[i].name.substring(0, 16);
+			sortedPlayer[i].name = sortedPlayer[i].name.substring(0, 12);
 		}
-		var toPrint = sortedPlayer[i].name + ":" + " ".repeat(16 - sortedPlayer[i].name.length);
-		returnValue += "<pre> <font color=\"yellow\">#" + (i + 1) + "</font>  " + toPrint + "  " + sortedPlayer[i].score + "<br></pre>";
+		var toPrint = sortedPlayer[i].name + ":" + " ".repeat(12 - sortedPlayer[i].name.length);
+    var scoreToPrint = sortedPlayer[i].score.toString();
+    if (scoreToPrint.length >= 8)
+		{
+			scoreToPrint = scoreToPrint.substring(0, 8);
+		}
+    var scoreToPrint = scoreToPrint + " ".repeat(8 - scoreToPrint.length);
+		returnValue += "<pre> <font color=\"yellow\">#" + (i + 1) + "</font>  " + toPrint + "  " + scoreToPrint + " x" + Math.floor(sortedPlayer[i].mult) + "<br></pre>";
 	}
 	return returnValue;
+}
+
+function addScoreToPlayer(username, score)
+{
+  players[username].score += (score * Math.floor(players[username].mult));
+  if (players[username].mult > 2)
+    players[username].mult += (50 / Math.floor(players[username].mult) / (Math.floor(players[username].mult * 0.9)) / 500) * score;
+  else
+    players[username].mult += (25 / Math.floor(players[username].mult) / Math.floor(players[username].mult) / 500) * score;
 }
 
 // Convert the data info for the client. We don't want the client know that under is cube it's a bomb or not
@@ -452,7 +470,7 @@ function savePlayer(socket)
 {
 	if (socket.username != undefined)
 	{
-		var queryStr = 'UPDATE ' + table + " SET Score = '" + players[socket.username].score + "', camX = '"+ players[socket.username].pos.x +"', camY = '"+ players[socket.username].pos.y +"', respawn = '" + players[socket.username].respawn + "' WHERE Name = '" + socket.username + "'";
+		var queryStr = 'UPDATE ' + table + " SET Score = '" + players[socket.username].score + "', Mult = '"+ players[socket.username].mult +"', camX = '"+ players[socket.username].pos.x +"', camY = '"+ players[socket.username].pos.y +"', respawn = '" + players[socket.username].respawn + "' WHERE Name = '" + socket.username + "'";
 		console.log("Saving player: " + queryStr);
 		connection.query(queryStr, function(err, rows, fields)
 		{
@@ -498,7 +516,7 @@ io.sockets.on('connection', function (socket) {
 						if (bcrypt.compareSync(pass, rows[i].Password))
 						{
 							found = true;
-							players[name] = {score:rows[i].Score, pos:{x:rows[i].camX, y:rows[i].camY}, respawn: rows[i].respawn};
+							players[name] = {score:rows[i].Score, pos:{x:rows[i].camX, y:rows[i].camY}, respawn: rows[i].respawn, mult: rows[i].Mult};
 							socket.username = name;
 							socket.emit('printText', "You join the game.");
 							socket.broadcast.emit('printText', name + " has join the game.");
@@ -518,7 +536,7 @@ io.sockets.on('connection', function (socket) {
 					{
 						if (!err)
 						{
-							players[name] = {score:0};
+							players[name] = {score:0, mult:1};
 							socket.username = name;
 							socket.emit('printText', "You join the game.");
 							socket.broadcast.emit('printText', name + " has join the game.");

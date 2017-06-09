@@ -567,7 +567,7 @@ socket.on('updateScore', function(score)
 	{
 		score = arr.join("</pre>");
 	}
-	document.getElementById('scoreboard').innerHTML = "<p align=\"center\">Leaderboard</p><pre> Rank   Name            Score</pre>" + score;
+	document.getElementById('scoreboard').innerHTML = "<p align=\"center\">Leaderboard</p><pre> Rank   Name        Score    Mult</pre>" + score;
 	socket.emit('askPersonalScore');
 });
 
