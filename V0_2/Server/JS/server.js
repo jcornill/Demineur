@@ -637,7 +637,7 @@ setInterval(function(){
 	for (var v in regions) {
 		if (regions.hasOwnProperty(v) && regions[v] != undefined) {
 			// If last update is > 1 min
-			if ((Date.now() - regions[v].lastUpdate) > 10000)
+			if ((Date.now() - regions[v].lastUpdate) > 60000)
 			{
 				unloadRegion(v.split(":")[0], v.split(":")[1]);
 			}
