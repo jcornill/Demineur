@@ -3,6 +3,7 @@ var fs = require('fs');
 var readline = require('readline');
 var mysql      = require('mysql');
 var bddConnect = require('bddConnect');
+var bcrypt = require('bcrypt');
 
 var rl = readline.createInterface({
   input: process.stdin,
@@ -10,7 +11,7 @@ var rl = readline.createInterface({
 });
 
 var connection;
-
+var saltRounds = bddConnect.saltRounds;
 
 function handleDisconnect() {
   connection = bddConnect.connect(); // Recreate the connection, since
@@ -242,7 +243,7 @@ function getNbBomb(x, y)
 }
 
 // Get number of blank space at x/y used when the player spawn
-function getEmptySpaceFromPoint(x, y)
+function getEmptySpaceFromPoint(x, y, cpt)
 {
 	var nbEmpty = 1;
 	for (var i = 0; i < counter.length; i++) {
@@ -257,7 +258,13 @@ function getEmptySpaceFromPoint(x, y)
 		for (var j = y-1; j <= y+1; j++) {
 			if (getNbBomb(i,j) === 0)
       {
-				nbEmpty += getEmptySpaceFromPoint(i, j);
+        cpt++;
+        if (cpt > 100)
+        {
+          console.log("Callstack overlap");
+          return nbEmpty;
+        }
+				nbEmpty += getEmptySpaceFromPoint(i, j, cpt);
         if (nbEmpty > 15)
           return nbEmpty;
       }
@@ -488,7 +495,7 @@ io.sockets.on('connection', function (socket) {
 				for (var i = 0; i < rows.length; i++) {
 					if (rows[i].Name === name)
 					{
-						if (rows[i].Password === pass)
+						if (bcrypt.compareSync(pass, rows[i].Password))
 						{
 							found = true;
 							players[name] = {score:rows[i].Score, pos:{x:rows[i].camX, y:rows[i].camY}, respawn: rows[i].respawn};
@@ -506,7 +513,8 @@ io.sockets.on('connection', function (socket) {
 				}
 				if (found === false)
 				{
-					connection.query('INSERT INTO ' + table + " (Name, Password, Score) VALUES('" + name + "', '" + pass + "', 0)", function(err, rows, fields)
+          var hashedPass = bcrypt.hashSync(pass, saltRounds);
+					connection.query('INSERT INTO ' + table + " (Name, Password, Score) VALUES('" + name + "', '" + hashedPass + "', 0)", function(err, rows, fields)
 					{
 						if (!err)
 						{
@@ -540,7 +548,7 @@ io.sockets.on('connection', function (socket) {
 			var info = getRegionData(r1, r2);
 			if (info === 9 && getNbBomb(r1, r2) === 0)
 			{
-				var emp = getEmptySpaceFromPoint(r1, r2);
+				var emp = getEmptySpaceFromPoint(r1, r2, 0);
 					counter = [];
 				if (emp < 10 || emp > 15)
 				{

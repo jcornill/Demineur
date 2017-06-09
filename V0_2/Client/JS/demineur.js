@@ -482,7 +482,7 @@ socket.on('askUsername', function()
 	loginDiv.appendChild(passSpan);
 
 	var pass = document.createElement('input');
-	pass.type = "text";
+	pass.type = "password";
 	pass.id = "passInput";
 	loginDiv.appendChild(pass);
 
