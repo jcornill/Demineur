@@ -126,7 +126,19 @@
 			}
 		};
 
+		var progressMultDiv = document.createElement('div');
+		progressMultDiv.id = "progressMultDiv";
+		document.getElementById('UI').appendChild(progressMultDiv);
+
+		var barMultDiv = document.createElement('div');
+		barMultDiv.id = "barMultDiv";
+		progressMultDiv.appendChild(barMultDiv);
+
+		var multValueDiv = document.createElement('div');
+		multValueDiv.id = "multValueDiv";
+		document.getElementById('UI').appendChild(multValueDiv);
 		socket.emit('askSpawn');
+		socket.emit('askProgressBar');
 	}
 
 	var b = 1;
@@ -574,6 +586,12 @@ socket.on('updateScore', function(score)
 socket.on('returnPersonalScore', function(score)
 {
 	document.getElementById('scoreboard').innerHTML += score;
+});
+
+socket.on('updateMultBar', function(progress)
+{
+	document.getElementById('barMultDiv').style.height = progress.percent + "%";
+	document.getElementById('multValueDiv').innerHTML = "x" + progress.value;
 });
 
 var moveCam = function(pos)

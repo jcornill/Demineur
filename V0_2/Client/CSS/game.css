@@ -25,6 +25,31 @@ body {
 	background-color: rgba(150, 150, 150, 0.7);
 }
 
+#progressMultDiv{
+	position: absolute;
+	background-color: grey;
+	right: 315px;
+	width: 17px;
+	height: 220px;
+	top: 30px;
+}
+
+#barMultDiv{
+	position: absolute;
+	background-color: green;
+	right: 1px;
+	width: 15px;
+	height: 1%;
+}
+
+#multValueDiv{
+	position: absolute;
+	color: #000000;
+	right: 315px;
+	top: 250px;
+	font-size: 20px;
+}
+
 #tpModuleDiv{
 	pointer-events: none;
 	display: block;

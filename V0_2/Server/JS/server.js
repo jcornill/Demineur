@@ -150,11 +150,11 @@ function processAction(x, y, button, socket)
 		setRegionData(x,y,info);
 		// If place flag on bomb
 		if (info === 11){
-			addScoreToPlayer(socket.username, 10);
+			addScoreToPlayer(socket.username, 10, socket);
 		}
 		else if (info === 10) {
 			// Player remove a placed flag where is a bomb
-			addScoreToPlayer(socket.username, -10);
+			addScoreToPlayer(socket.username, -10, socket);
 		}
 		else if (info === 12){
 			players[socket.username].mult = 1;
@@ -196,7 +196,7 @@ function processAction(x, y, button, socket)
 			}
 		}
 	}
-	addScoreToPlayer(socket.username, 1);
+	addScoreToPlayer(socket.username, 1, socket);
 	io.emit('processAction', {x:x, y:y, visibility:convertInfoForClient(info) });
 }
 
@@ -444,13 +444,15 @@ function getLeaderboardText()
 	return returnValue;
 }
 
-function addScoreToPlayer(username, score)
+function addScoreToPlayer(username, score, socket)
 {
   players[username].score += (score * Math.floor(players[username].mult));
   if (players[username].mult > 2)
     players[username].mult += (50 / Math.floor(players[username].mult) / (Math.floor(players[username].mult * 0.9)) / 500) * score;
   else
     players[username].mult += (25 / Math.floor(players[username].mult) / Math.floor(players[username].mult) / 500) * score;
+  var result = players[username].mult - Math.floor(players[username].mult);
+  socket.emit('updateMultBar', {percent: Math.floor(result * 100), value: Math.floor(players[username].mult)});
 }
 
 // Convert the data info for the client. We don't want the client know that under is cube it's a bomb or not
@@ -591,6 +593,12 @@ io.sockets.on('connection', function (socket) {
 	}
 
 	socket.on('askSpawn', testSpawn);
+
+  socket.on('askProgressBar', function()
+  {
+    var result = players[socket.username].mult - Math.floor(players[socket.username].mult);
+    socket.emit('updateMultBar', {percent: Math.floor(result * 100), value: Math.floor(players[socket.username].mult)});
+  });
 
 	socket.on('disconnect', function()
 	{
